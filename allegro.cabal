@@ -1,0 +1,28 @@
+name:                allegro
+version:             0.1.0.0
+synopsis:            A binding to the Allegro library
+description:         A binding to the Allegro library
+license:             BSD3
+license-file:        LICENSE
+author:              Iavor S. Diatchki
+maintainer:          iavor.diatchki@gmail.com
+category:            Game
+build-type:          Simple
+cabal-version:       >=1.6
+
+library
+  exposed-modules:     Allegro,
+                       Allegro.C,
+                       Allegro.C.Types,
+                       Allegro.C.Display,
+                       Allegro.C.Keyboard,
+                       Allegro.C.Joystick,
+                       Allegro.C.EventQueue,
+                       Allegro.C.Event,
+                       Allegro.C.Timer
+  build-depends:       base >=4.6, array
+  hs-source-dirs:      src
+  c-sources:           cbits/wrappers.c
+  build-tools:         hsc2hs
+  extra-libraries:     allegro
+  GHC-options:         -Wall -O2
