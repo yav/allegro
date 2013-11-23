@@ -1,6 +1,8 @@
+{-# LANGUAGE DeriveDataTypeable #-}
 module Allegro.Keyboard
   ( Keyboard(..)
   , install
+  , FailedToInstallKeyboard(..)
   , uninstall
   , isInstalled
 
@@ -146,12 +148,21 @@ module Allegro.Keyboard
 import Allegro.Types
 import Allegro.C.Keyboard
 
-import Control.Monad
+import           Control.Monad ( unless )
 import qualified Control.Exception as X
-import Data.Bits
-import Foreign.C.String(peekCString)
-import System.IO.Unsafe(unsafeDupablePerformIO)
+import           Data.Bits ( (.|.), (.&.), complement )
+import           Data.Typeable(Typeable)
+import           Foreign.C.String(peekCString)
+import           System.IO.Unsafe(unsafeDupablePerformIO)
 
+
+data FailedToInstallKeyboard  = FailedToInstallKeyboard
+  deriving (Typeable,Show)
+
+instance X.Exception FailedToInstallKeyboard
+
+-- | Try to install the keyboard driver.
+-- Throws '`FailedToInstallKeyboard' if we something goes wrong.
 install :: IO ()
 install =
   do ok <- al_install_keyboard

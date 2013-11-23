@@ -1,11 +1,13 @@
+{-# LANGUAGE DeriveDataTypeable #-}
 module Allegro.Display where
 
 import Allegro.Types
 import Allegro.C.Display
 
-import Foreign
-import Control.Monad
+import           Foreign
+import           Control.Monad
 import qualified Control.Exception as X
+import           Data.Typeable
 
 data DisplayType = Windowed Bool    -- ^ Is it resizeable
                  | FullScreen       -- ^ Create a full-screen window
@@ -25,5 +27,10 @@ createDisplay how w h =
 
 destroyDisplay :: Display -> IO ()
 destroyDisplay (Display p) = al_destroy_display p
+
+data FailedToCreateDisplay    = FailedToCreateDisplay
+  deriving (Typeable,Show)
+
+instance X.Exception FailedToCreateDisplay
 
 

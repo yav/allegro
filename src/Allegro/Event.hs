@@ -1,8 +1,10 @@
+{-# LANGUAGE DeriveDataTypeable #-}
 module Allegro.Event
   (
     -- * Event Queues
     EventQueue
   , createEventQueue
+  , FailedToCreateEventQueue(..)
   , registerEventSource
   , waitForEvent
   , unregisterEventSource
@@ -49,12 +51,14 @@ import Allegro.C.EventQueue
 import Allegro.C.Display(al_get_display_event_source)
 import Allegro.C.Keyboard
 import Allegro.C.Mouse
-import Foreign  ( Ptr, nullPtr, allocaBytes
-                , ForeignPtr, newForeignPtr, withForeignPtr
-                )
+
 import qualified Control.Exception as X
-import Control.Monad
-import Control.Applicative
+import           Control.Monad ( when, guard )
+import           Control.Applicative ( (<$>), (<*>) )
+import           Data.Typeable ( Typeable )
+import           Foreign  ( Ptr, nullPtr, allocaBytes
+                          , ForeignPtr, newForeignPtr, withForeignPtr
+                          )
 
 
 newtype EventSource = EventSource (Ptr EVENT_SOURCE)
@@ -81,6 +85,11 @@ instance HasEventSource Keyboard where
 instance HasEventSource Mouse where
   eventSource Mouse = EventSource `fmap` al_get_mouse_event_source
 
+
+data FailedToCreateEventQueue = FailedToCreateEventQueue
+  deriving (Typeable,Show)
+
+instance X.Exception FailedToCreateEventQueue
 
 createEventQueue :: IO EventQueue
 createEventQueue =
