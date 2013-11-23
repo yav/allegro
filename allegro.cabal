@@ -15,6 +15,7 @@ library
                        Allegro.Display,
                        Allegro.DisplayMode,
                        Allegro.Event,
+                       Allegro.Keyboard,
                        Allegro.Types,
                        Allegro.C,
                        Allegro.C.Types,

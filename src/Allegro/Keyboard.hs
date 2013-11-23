@@ -3,7 +3,10 @@ module Allegro.Keyboard
   , install
   , uninstall
   , isInstalled
+
+  -- * Keys
   , Key
+  , keyName
 
   , key_A
   , key_B
@@ -112,6 +115,7 @@ module Allegro.Keyboard
   , key_SEMICOLON2
   , key_COMMAND
 
+  -- * Key modifiers
   , KeyMod
 
   , kmNone
@@ -145,6 +149,7 @@ import Allegro.C.Keyboard
 import Control.Monad
 import qualified Control.Exception as X
 import Data.Bits
+import Foreign.C.String(peekCString)
 import System.IO.Unsafe(unsafeDupablePerformIO)
 
 install :: IO ()
@@ -165,16 +170,16 @@ keyName (Key x) = unsafeDupablePerformIO
                 $ al_keycode_to_name x
 
 kmNone :: KeyMod
-kmNone = KeyMod 0
+kmNone = KM 0
 
 kmAdd :: KeyMod -> KeyMod -> KeyMod
-kmAdd (KeyMod x) (KeyMod y) = KeyMod (x .|. y)
+kmAdd (KM x) (KM y) = KM (x .|. y)
 
 kmCommon :: KeyMod -> KeyMod -> KeyMod
-kmCommon (KeyMod x) (KeyMod y) = KeyMod (x .&. y)
+kmCommon (KM x) (KM y) = KM (x .&. y)
 
-kmOthers :: KeyMod -> KeyMod -> KeyMod
-kmOthers (KeyMod x) = KeyMod (complement x)
+kmOthers :: KeyMod -> KeyMod
+kmOthers (KM x) = KM (complement x)
 
 kmDiff :: KeyMod -> KeyMod -> KeyMod
 kmDiff x y = kmCommon x (kmOthers y)
