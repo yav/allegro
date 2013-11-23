@@ -8,6 +8,35 @@ import Foreign.C.Types
 
 #include <allegro5/allegro.h>
 
+event_joystick_axis
+  , event_joystick_button_down
+  , event_joystick_button_up
+  , event_joystick_configuration
+
+  , event_key_down
+  , event_key_char
+  , event_key_up
+
+  , event_mouse_axes
+  , event_mouse_button_down
+  , event_mouse_button_up
+  , event_mouse_enter_display
+  , event_mouse_leave_display
+  , event_mouse_warped
+
+  , event_timer
+
+  , event_display_expose
+  , event_display_resize
+  , event_display_close
+  , event_display_lost
+  , event_display_found
+  , event_display_switch_in
+  , event_display_switch_out
+  , event_display_orientation
+  :: CInt
+
+
 event_joystick_axis           = #{const ALLEGRO_EVENT_JOYSTICK_AXIS}
 event_joystick_button_down    = #{const ALLEGRO_EVENT_JOYSTICK_BUTTON_DOWN}
 event_joystick_button_up      = #{const ALLEGRO_EVENT_JOYSTICK_BUTTON_UP}

@@ -2,6 +2,7 @@
 module Allegro.C.Types where
 
 data DISPLAY
+data DISPLAY_MODE
 data BITMAP
 data EVENT
 data EVENT_QUEUE

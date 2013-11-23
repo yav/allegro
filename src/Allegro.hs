@@ -1,5 +1,8 @@
 module Allegro where
 
+import Allegro.Types
+
+import Allegro.C
 import Allegro.C.Types
 import Allegro.C.Display
 import Foreign hiding (newForeignPtr)
@@ -8,26 +11,23 @@ import Foreign.C.Types
 import Control.Monad
 import Control.Applicative
 import Control.Concurrent
+import qualified Control.Exception as X
 
+
+initialize :: IO ()
+initialize =
+  do ok <- al_init
+     unless ok $ X.throwIO FailedToInitialize
+
+{-
 newtype Display     = Display (Ptr DISPLAY)
 newtype Timer       = Timer (Ptr TIMER)
 newtype Joystick    = Joystick (Ptr JOYSTICK)
 data EventQueue  = EventQueue (Ptr EVENT_QUEUE)
 newtype EventSource = EventSource (Ptr EVENT_SOURCE)
                       deriving (Eq,Ord)
+-}
 
-withDisplay :: Int -> Int -> (Display -> IO ()) -> IO ()
-withDisplay w h k =
-  runInBoundThread $
-  do p <- al_create_display (toEnum w) (toEnum h)
-     if p == nullPtr then fail "Failed to create display"
-                     else k (Display p)
-     al_destroy_display p
-
--- XXX
-getDisplayEventSource :: Display -> IO (Ptr EVENT_SOURCE) -- EventSource
-getDisplayEventSource (Display fp) =
-  id <$> al_get_display_event_source fp
 
 {-
 newtype Modifiers = Modifiers CUInt

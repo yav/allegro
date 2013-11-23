@@ -12,9 +12,14 @@ cabal-version:       >=1.6
 
 library
   exposed-modules:     Allegro,
+                       Allegro.Display,
+                       Allegro.DisplayMode,
+                       Allegro.Event,
+                       Allegro.Types,
                        Allegro.C,
                        Allegro.C.Types,
                        Allegro.C.Display,
+                       Allegro.C.DisplayMode,
                        Allegro.C.Keyboard,
                        Allegro.C.Joystick,
                        Allegro.C.EventQueue,
