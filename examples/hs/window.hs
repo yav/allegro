@@ -28,7 +28,6 @@ main =
      print =<< waitForEvent q
 
      destroyDisplay display
-     destroyEventQueue q
 
 
 

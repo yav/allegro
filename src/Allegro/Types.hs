@@ -10,6 +10,8 @@ data Exception
   = FailedToInitialize
   | FailedToCreateDisplay
   | FailedToCreateEventQueue
+  | FailedToInstallKeyboard
+  | FailedToInstallMouse
   deriving (Typeable,Show)
 
 instance X.Exception Exception
@@ -19,5 +21,9 @@ instance X.Exception Exception
 
 newtype Display = Display (Ptr DISPLAY)
                   deriving Show
+
+
+data Keyboard   = Keyboard
+data Mouse      = Mouse
 
 

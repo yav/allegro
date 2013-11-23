@@ -21,6 +21,7 @@ library
                        Allegro.C.Display,
                        Allegro.C.DisplayMode,
                        Allegro.C.Keyboard,
+                       Allegro.C.Mouse,
                        Allegro.C.Joystick,
                        Allegro.C.EventQueue,
                        Allegro.C.Event,

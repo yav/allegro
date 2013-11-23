@@ -8,6 +8,7 @@ data EVENT
 data EVENT_QUEUE
 data EVENT_SOURCE
 data KEYBOARD_STATE
+data MOUSE_STATE
 data TIMER
 
 data JOYSTICK

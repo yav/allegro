@@ -1,8 +1,6 @@
 module Allegro.Display where
 
 import Allegro.Types
-import Allegro.Event
-import Allegro.C.Types
 import Allegro.C.Display
 
 import Foreign
@@ -28,6 +26,4 @@ createDisplay how w h =
 destroyDisplay :: Display -> IO ()
 destroyDisplay (Display p) = al_destroy_display p
 
-instance IsEventSource Display where
-  eventSource (Display p) = EventSource `fmap` al_get_display_event_source p
 
