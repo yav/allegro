@@ -2,9 +2,9 @@
 module Allegro.Keyboard
   ( Keyboard(..)
   , install
-  , FailedToInstallKeyboard(..)
   , uninstall
   , isInstalled
+  , FailedToInstallKeyboard(..)
 
   -- * Keys
   , Key

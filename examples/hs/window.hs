@@ -1,33 +1,29 @@
+{-# LANGUAGE ViewPatterns #-}
 import Allegro
 import Allegro.Display
-import Allegro.DisplayMode
 import Allegro.Event
-import Allegro.C
-import Allegro.C.Display
-import Allegro.C.Event
-import Allegro.C.EventQueue
+import Allegro.Keyboard as Keyboard
 
-import System.IO(hPutStrLn,stderr)
-import System.Exit(exitFailure)
-import Control.Monad(when,unless,forever)
-import Control.Concurrent(threadDelay)
 
-import Foreign
+import qualified Control.Exception as X
+
 
 main :: IO ()
 main =
   do Allegro.initialize
-     mapM_ print =<< displayModes
+     d <- createDisplay (Windowed False) 800 600
+     do Keyboard.install
+        q <- createEventQueue
 
-     display <- createDisplay (Windowed False) 800 600
+        registerEventSource q Keyboard
+        let go = do ev <- waitForEvent q
+                    print $ evType ev
+                    case ev of
+                      KeyChar (evKeyChar -> Just 'q') -> return ()
+                      _ -> go
+        go
 
-
-     q <- createEventQueue
-     registerEventSource q display
-
-     print =<< waitForEvent q
-
-     destroyDisplay display
+      `X.finally` destroyDisplay d
 
 
 

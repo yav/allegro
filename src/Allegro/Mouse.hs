@@ -1,9 +1,9 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 module Allegro.Mouse
   ( install
-  , FailedToInstallMouse(..)
   , uninstall
   , isInstalled
+  , FailedToInstallMouse(..)
   ) where
 
 import           Allegro.C.Mouse

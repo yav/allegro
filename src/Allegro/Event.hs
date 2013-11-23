@@ -179,6 +179,31 @@ data Event  = DisplayClose     {-# UNPACK #-} !DisplayEvent
 
             | Unknown          {-# UNPACK #-} !AnyEvent
 
+toAny :: Event -> AnyEvent
+toAny ev =
+  case ev of
+    DisplayClose     x -> dSuper' x
+    DisplaySwitchIn  x -> dSuper' x
+    DisplaySwitchOut x -> dSuper' x
+
+    KeyUp            x -> kSuper' x
+    KeyDown          x -> kSuper' x
+    KeyChar          x -> kSuper' $ kcSuper' x
+
+    MouseEnter       x -> meSuper' x
+    MouseLeave       x -> meSuper' x
+    MouseMove        x -> meSuper' $ mmeSuper' x
+    MouseWarp        x -> meSuper' $ mmeSuper' x
+    MouseButtonDown  x -> meSuper' $ mbeSuper' x
+    MouseButtonUp    x -> meSuper' $ mbeSuper' x
+
+    Unknown          x -> x
+
+instance HasType      Event where evType      = evType      . toAny
+instance HasTimestamp Event where evTimestamp = evTimestamp . toAny
+instance HasSource    Event where evSource    = evSource    . toAny
+
+
 class ParseEvent t where
   eventDetails :: Ptr EVENT -> IO t
 
