@@ -14,9 +14,10 @@ int main(int argc, char *argv[]) {
     return 3;
   }
 
-  ALLEGRO_BITMAP *img = al_load_bitmap("example.jpg");
+  const char* img_name = "resources/example.jpg";
+  ALLEGRO_BITMAP *img = al_load_bitmap(img_name);
   if (img == NULL) {
-    fprintf(stderr, "Failed to load image.\n");
+    fprintf(stderr, "Failed to load image %s.\n", img_name);
     al_shutdown_image_addon();
     return 4;
   }
