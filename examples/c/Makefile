@@ -6,7 +6,10 @@ $(BUILD)/%: %.c
           -lallegro \
           -lallegro_image \
           -lallegro_font \
-          -lallegro_ttf
+          -lallegro_ttf \
+          -lallegro_audio \
+          -lallegro_acodec \
+          -lm
 
 .PHONY: clean
 clean:
