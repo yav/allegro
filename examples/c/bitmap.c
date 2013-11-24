@@ -35,7 +35,8 @@ int main(int argc, char *argv[]) {
   al_flip_display();
   al_rest(3);
 
-  al_shutdown_image_addon();
+  al_destroy_bitmap(img);
   al_destroy_display(display);
+  al_shutdown_image_addon();
   return 0;
 }
