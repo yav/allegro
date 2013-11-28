@@ -33,7 +33,7 @@ int main(int argc, char *argv[]) {
     goto X1;
   }
 
-  const char* sample_name = "resources/sound.wav";
+  const char* sample_name = "../resources/sound.wav";
   ALLEGRO_SAMPLE *sample = al_load_sample(sample_name);
   if (sample == NULL) {
     fprintf(stderr, "Failed to load sample from %s.\n", sample_name);

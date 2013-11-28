@@ -15,7 +15,7 @@ main :: IO ()
 main =
   allegro $
   withDisplay (Windowed False) 640 480 $ \d ->
-  do f <- loadFont "resources/font.ttf" 12 Font.defaultFlags
+  do f <- loadFont "../resources/font.ttf" 12 Font.defaultFlags
      putStr $ unlines [ "lineHeight = " ++ show (lineHeight f)
                       , "ascent = " ++ show (ascent f)
                       , "descent = " ++ show (descent f)

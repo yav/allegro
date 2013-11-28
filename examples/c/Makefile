@@ -1,5 +1,9 @@
 BUILD:=build
 
+.PHONY: all
+
+all: $(patsubst %.c,build/%/,$(wildcard *.c))
+
 $(BUILD)/%: %.c
 	mkdir -p $(BUILD)
 	gcc -std=c99 -Wall $^ -o $@ \

@@ -20,7 +20,7 @@ int main(int argc, char *argv[]) {
     goto X1;
   }
 
-  const char *font_name = "resources/font.ttf";
+  const char *font_name = "../resources/font.ttf";
   ALLEGRO_FONT *font = al_load_ttf_font(font_name, 12, 0);
   if (font == NULL) {
     fprintf(stderr, "Failed to load font %s\n", font_name);
