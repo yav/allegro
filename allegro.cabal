@@ -15,6 +15,7 @@ library
                        Allegro.Display,
                        Allegro.DisplayMode,
                        Allegro.Event,
+                       Allegro.Font,
                        Allegro.Keyboard,
                        Allegro.Mouse,
                        Allegro.Types,
@@ -27,6 +28,7 @@ library
                        Allegro.C.Joystick,
                        Allegro.C.EventQueue,
                        Allegro.C.Event,
+                       Allegro.C.Font,
                        Allegro.C.Timer
   build-depends:       base >=4.6, array
   hs-source-dirs:      src

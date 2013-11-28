@@ -13,6 +13,11 @@ data DisplayType = Windowed Bool    -- ^ Is it resizeable
                  | FullScreen       -- ^ Create a full-screen window
 
 
+withDisplay :: DisplayType -> Int -> Int -> (Display -> IO ()) -> IO ()
+withDisplay how w h k =
+  do d <- createDisplay how w h
+     k d `X.finally` destroyDisplay d
+
 createDisplay :: DisplayType -> Int -> Int -> IO Display
 createDisplay how w h =
   do al_set_new_display_flags $
@@ -32,5 +37,8 @@ data FailedToCreateDisplay    = FailedToCreateDisplay
   deriving (Typeable,Show)
 
 instance X.Exception FailedToCreateDisplay
+
+flipDisplay :: IO ()
+flipDisplay = al_flip_display
 
 
