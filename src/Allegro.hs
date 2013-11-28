@@ -16,7 +16,9 @@ initialize =
   do ok <- al_init
      unless ok $ X.throwIO FailedToInitialize
 
-data FailedToInitialize       = FailedToInitialize
+     
+
+data FailedToInitialize = FailedToInitialize
   deriving (Typeable,Show)
 
 instance X.Exception FailedToInitialize

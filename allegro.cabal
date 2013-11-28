@@ -32,5 +32,7 @@ library
   hs-source-dirs:      src
   c-sources:           cbits/wrappers.c
   build-tools:         hsc2hs
-  extra-libraries:     allegro
+  extra-libraries:     allegro, allegro_image, allegro_font,
+                       allegro_ttf, allegro_audio, allegro_acodec,
+                       allegro_primitives
   GHC-options:         -Wall -O2
