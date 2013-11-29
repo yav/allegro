@@ -18,8 +18,9 @@ library
                        Allegro.Font,
                        Allegro.Keyboard,
                        Allegro.Mouse,
+                       Allegro.Timer
+  other-modules:
                        Allegro.Types,
-                       Allegro.Timer,
                        Allegro.C,
                        Allegro.C.Types,
                        Allegro.C.Display,

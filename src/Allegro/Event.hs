@@ -5,12 +5,10 @@ module Allegro.Event
     -- * Event Queues
     EventQueue
   , createEventQueue
-  , FailedToCreateEventQueue(..)
   , registerEventSource
   , waitForEvent
   , unregisterEventSource
-  , HasEventSource
-  , eventSource
+  , EventSource
 
     -- * Events
   , Event(..)
@@ -18,9 +16,7 @@ module Allegro.Event
     -- ** Common fields
   , HasTimestamp(..)
   , HasType(..)
-  , HasSource(..)
-  , EventSource
-  , AnyEvent
+  , SomeEvent
 
     -- ** Display Events
   , HasDisplay(..)
@@ -44,6 +40,14 @@ module Allegro.Event
 
   , MouseButtonEvent
   , evMouseButton
+
+  -- ** Timer Events
+  , TimerEvent
+  , evTimer
+  , evCount
+
+  -- * Exceptions
+  , FailedToCreateEventQueue(..)
   ) where
 
 import Allegro.Types
@@ -57,6 +61,7 @@ import Allegro.C.Mouse
 
 import qualified Control.Exception as X
 import           Data.IORef
+import           Data.Int(Int64)
 import           Control.Monad ( when, guard )
 import           Control.Applicative ( (<$>), (<*>) )
 import           Data.Typeable ( Typeable )
@@ -66,9 +71,6 @@ import           Foreign  ( Ptr, nullPtr, allocaBytes
                           )
 
 
-newtype EventSource = EventSource (Ptr EVENT_SOURCE)
-                      deriving (Eq)
-
 -- The event queue keeps track of twho's registered with it, so
 -- that they don;t get destroyed prematurely.
 data EventQueue     = EventQueue { eqPtr :: ForeignPtr EVENT_QUEUE
@@ -76,28 +78,28 @@ data EventQueue     = EventQueue { eqPtr :: ForeignPtr EVENT_QUEUE
                                  }
                       deriving Eq
 
-instance Foreign EventQueue where
+instance Object EventQueue where
   type CType EventQueue = EVENT_QUEUE
   foreignPtr = eqPtr
 
-class HasEventSource t where
-  eventSource   :: t -> IO EventSource
+class EventSource t where
+  eventSource   :: t -> IO (Ptr EVENT_SOURCE)
   foreignClient :: t -> Maybe (ForeignPtr ())
 
-instance HasEventSource Display where
-  eventSource (Display p) = EventSource `fmap` al_get_display_event_source p
+instance EventSource Display where
+  eventSource (Display p) = al_get_display_event_source p
   foreignClient _ = Nothing -- XXX?
 
-instance HasEventSource Keyboard where
-  eventSource _ = EventSource `fmap` al_get_keyboard_event_source
+instance EventSource Keyboard where
+  eventSource _ = al_get_keyboard_event_source
   foreignClient = Just . foreignPtr
 
-instance HasEventSource Mouse where
-  eventSource _ = EventSource `fmap` al_get_mouse_event_source
+instance EventSource Mouse where
+  eventSource _ = al_get_mouse_event_source
   foreignClient = Just . foreignPtr
 
-instance HasEventSource Timer where
-  eventSource t = EventSource `fmap` withPtr t al_get_timer_event_source
+instance EventSource Timer where
+  eventSource t = withPtr t al_get_timer_event_source
   foreignClient (Timer t) = Just (castForeignPtr t)
 
 data FailedToCreateEventQueue = FailedToCreateEventQueue
@@ -113,17 +115,17 @@ createEventQueue =
      clients <- newIORef []
      return EventQueue { eqPtr = fp, eqReg = clients }
 
-registerEventSource :: HasEventSource t => EventQueue -> t -> IO ()
+registerEventSource :: EventSource t => EventQueue -> t -> IO ()
 registerEventSource q x =
-  do EventSource s <- eventSource x
+  do s <- eventSource x
      case foreignClient x of
        Just fp -> atomicModifyIORef (eqReg q) $ \as -> (fp : as, ())
        Nothing -> return ()
      withPtr q $ \qp -> al_register_event_source qp s
 
-unregisterEventSource :: HasEventSource t => EventQueue -> t -> IO ()
+unregisterEventSource :: EventSource t => EventQueue -> t -> IO ()
 unregisterEventSource q x =
-  do EventSource s <- eventSource x
+  do s <- eventSource x
      withPtr q $ \qp -> al_unregister_event_source qp s
      case foreignClient x of
        Just fp -> atomicModifyIORef (eqReg q) $ \as -> let as' = rm fp as id
@@ -186,6 +188,9 @@ parseEvent p =
          | t == event_mouse_button_up ->
              MouseButtonUp `fmap` eventDetails p
 
+         | t == event_timer ->
+             Time `fmap` eventDetails p
+
          -- Fallback
          | otherwise ->
              Unknown `fmap` eventDetails p
@@ -205,9 +210,11 @@ data Event  = DisplayClose     {-# UNPACK #-} !DisplayEvent
             | MouseButtonDown  {-# UNPACK #-} !MouseButtonEvent
             | MouseButtonUp    {-# UNPACK #-} !MouseButtonEvent
 
-            | Unknown          {-# UNPACK #-} !AnyEvent
+            | Time             {-# UNPACK #-} !TimerEvent
 
-toAny :: Event -> AnyEvent
+            | Unknown          {-# UNPACK #-} !SomeEvent
+
+toAny :: Event -> SomeEvent
 toAny ev =
   case ev of
     DisplayClose     x -> dSuper' x
@@ -225,11 +232,12 @@ toAny ev =
     MouseButtonDown  x -> meSuper' $ mbeSuper' x
     MouseButtonUp    x -> meSuper' $ mbeSuper' x
 
+    Time             x -> tiSuper' x
+
     Unknown          x -> x
 
 instance HasType      Event where evType      = evType      . toAny
 instance HasTimestamp Event where evTimestamp = evTimestamp . toAny
-instance HasSource    Event where evSource    = evSource    . toAny
 
 
 class ParseEvent t where
@@ -247,9 +255,6 @@ class HasType t where
 class HasTimestamp t where
   evTimestamp :: t -> Double
 
-class HasSource t where
-  evSource    :: t -> EventSource
-
 class HasDisplay t where
   evDisplay   :: t -> Display
 
@@ -260,29 +265,42 @@ class HasMouseAxis t where
   evMouseX, evMouseY, evMouseZ, evMouseW :: t -> Int
 
 
+
 --------------------------------------------------------------------------------
 -- Catch all
 
 
-data AnyEvent = EvAny { evType'      :: Int
+data SomeEvent = EvAny { evType'      :: Int
                       , evTimestamp' :: Double
-                      , evSource'    :: EventSource
                       }
 
-instance ParseEvent AnyEvent where
+instance ParseEvent SomeEvent where
   eventDetails p = EvAny <$> (fromIntegral <$> event_type p)
                          <*> (realToFrac   <$> event_any_timestamp p)
-                         <*> (EventSource  <$> event_any_source p)
 
-instance HasType      AnyEvent where evType      = evType'
-instance HasTimestamp AnyEvent where evTimestamp = evTimestamp'
-instance HasSource    AnyEvent where evSource    = evSource'
+instance HasType      SomeEvent where evType      = evType'
+instance HasTimestamp SomeEvent where evTimestamp = evTimestamp'
+
+--------------------------------------------------------------------------------
+-- Timer events
+
+data TimerEvent = EvTimer
+  { tiSuper' :: {-# UNPACK #-} !SomeEvent
+  , evTimer  :: Name Timer
+  , evCount  :: Int64
+  }
+
+instance ParseEvent TimerEvent where
+  eventDetails p = EvTimer <$> eventDetails p
+                           <*> (Name <$> event_timer_source p)
+                           <*> event_timer_count p
+
 
 --------------------------------------------------------------------------------
 -- Display events
 
 data DisplayEvent = EvDisplay
-  { dSuper'   :: {-# UNPACK #-} !AnyEvent
+  { dSuper'   :: {-# UNPACK #-} !SomeEvent
   , dDisplay' :: Display
   }
 
@@ -292,14 +310,13 @@ instance ParseEvent DisplayEvent where
 
 instance HasType      DisplayEvent where evType      = evType      . dSuper'
 instance HasTimestamp DisplayEvent where evTimestamp = evTimestamp . dSuper'
-instance HasSource    DisplayEvent where evSource    = evSource    . dSuper'
 instance HasDisplay   DisplayEvent where evDisplay   = dDisplay'
 
 
 ---------------------------------------------------------------------------------- Keyboard events
 
 data KeyEvent = EvKey
-  { kSuper'   :: {-# UNPACK #-} !AnyEvent
+  { kSuper'   :: {-# UNPACK #-} !SomeEvent
   , kDisplay' :: Display
   , kKey'     :: Key
   }
@@ -311,7 +328,6 @@ instance ParseEvent KeyEvent where
 
 instance HasType      KeyEvent where evType      = evType      . kSuper'
 instance HasTimestamp KeyEvent where evTimestamp = evTimestamp . kSuper'
-instance HasSource    KeyEvent where evSource    = evSource    . kSuper'
 instance HasDisplay   KeyEvent where evDisplay   = kDisplay'
 instance HasKey       KeyEvent where evKey       = kKey'
 
@@ -336,7 +352,6 @@ instance ParseEvent KeyCharEvent where
 
 instance HasType      KeyCharEvent where evType      = evType      . kcSuper'
 instance HasTimestamp KeyCharEvent where evTimestamp = evTimestamp . kcSuper'
-instance HasSource    KeyCharEvent where evSource    = evSource    . kcSuper'
 instance HasDisplay   KeyCharEvent where evDisplay   = evDisplay   . kcSuper'
 instance HasKey       KeyCharEvent where evKey       = evKey       . kcSuper'
 
@@ -348,7 +363,7 @@ instance HasKey       KeyCharEvent where evKey       = evKey       . kcSuper'
 -- Mouse events
 
 data MouseEvent   = ME
-  { meSuper'    :: {-# UNPACK #-} !AnyEvent
+  { meSuper'    :: {-# UNPACK #-} !SomeEvent
   , meDisplay'  :: Display
   , meX', meY', meZ', meW' :: Int
   }
@@ -363,7 +378,6 @@ instance ParseEvent MouseEvent where
 
 instance HasType      MouseEvent where evType      = evType      . meSuper'
 instance HasTimestamp MouseEvent where evTimestamp = evTimestamp . meSuper'
-instance HasSource    MouseEvent where evSource    = evSource    . meSuper'
 instance HasDisplay   MouseEvent where evDisplay   = meDisplay'
 
 instance HasMouseAxis MouseEvent where
@@ -389,7 +403,6 @@ instance ParseEvent MouseMoveEvent where
 
 instance HasType      MouseMoveEvent where evType      = evType      . mmeSuper'
 instance HasTimestamp MouseMoveEvent where evTimestamp = evTimestamp . mmeSuper'
-instance HasSource    MouseMoveEvent where evSource    = evSource    . mmeSuper'
 instance HasDisplay   MouseMoveEvent where evDisplay   = evDisplay   . mmeSuper'
 
 instance HasMouseAxis MouseMoveEvent where
@@ -413,7 +426,6 @@ instance ParseEvent MouseButtonEvent where
 
 instance HasType      MouseButtonEvent where evType      = evType     .mbeSuper'
 instance HasTimestamp MouseButtonEvent where evTimestamp = evTimestamp.mbeSuper'
-instance HasSource    MouseButtonEvent where evSource    = evSource   .mbeSuper'
 instance HasDisplay   MouseButtonEvent where evDisplay   = evDisplay  .mbeSuper'
 
 instance HasMouseAxis MouseButtonEvent where

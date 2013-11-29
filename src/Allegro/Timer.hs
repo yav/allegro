@@ -1,15 +1,15 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 module Allegro.Timer
   ( Timer
-  , createTimer
-  , startTimer
-  , stopTimer
-  , timerStarted
-  , timerCount
-  , setTimerCount
-  , addTimerCount
-  , timerSpeed
-  , setTimerSpeed
+  , create
+  , start
+  , stop
+  , isStarted
+  , getCount
+  , setCount
+  , addCount
+  , getSpeed
+  , setSpeed
 
   -- * Exceptions
   , FailedToCreateTimer(..)
@@ -24,8 +24,9 @@ import           Control.Monad ( when )
 import           Data.Typeable ( Typeable )
 import           Foreign ( newForeignPtr, nullPtr )
 
-createTimer :: Double -> IO Timer
-createTimer sp =
+create :: Double -- ^ Timer speed
+       -> IO Timer
+create sp =
   do ptr <- al_create_timer (realToFrac sp)
      when (ptr == nullPtr) $ X.throwIO FailedToCreateTimer
      Timer `fmap` newForeignPtr al_destroy_timer_addr ptr
@@ -36,29 +37,29 @@ instance X.Exception FailedToCreateTimer
 
 
 
-startTimer :: Timer -> IO ()
-startTimer t = withPtr t al_start_timer
+start :: Timer -> IO ()
+start t = withPtr t al_start_timer
 
-stopTimer :: Timer -> IO ()
-stopTimer t = withPtr t al_stop_timer
+stop :: Timer -> IO ()
+stop t = withPtr t al_stop_timer
 
-timerStarted :: Timer -> IO Bool
-timerStarted t = withPtr t al_get_timer_started
+isStarted :: Timer -> IO Bool
+isStarted t = withPtr t al_get_timer_started
 
-timerCount :: Timer -> IO Int64
-timerCount t = withPtr t al_get_timer_count
+getCount :: Timer -> IO Int64
+getCount t = withPtr t al_get_timer_count
 
-setTimerCount :: Timer -> Int64 -> IO ()
-setTimerCount t x = withPtr t $ \p -> al_set_timer_count p x
+setCount :: Timer -> Int64 -> IO ()
+setCount t x = withPtr t $ \p -> al_set_timer_count p x
 
-addTimerCount :: Timer -> Int64 -> IO ()
-addTimerCount t x = withPtr t $ \p -> al_add_timer_count p x
+addCount :: Timer -> Int64 -> IO ()
+addCount t x = withPtr t $ \p -> al_add_timer_count p x
 
-timerSpeed :: Timer -> IO Double
-timerSpeed t = fmap realToFrac (withPtr t al_get_timer_speed)
+getSpeed :: Timer -> IO Double
+getSpeed t = fmap realToFrac (withPtr t al_get_timer_speed)
 
-setTimerSpeed :: Timer -> Double -> IO ()
-setTimerSpeed t x = withPtr t $ \p -> al_set_timer_speed p (realToFrac x)
+setSpeed :: Timer -> Double -> IO ()
+setSpeed t x = withPtr t $ \p -> al_set_timer_speed p (realToFrac x)
 
 
 
