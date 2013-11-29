@@ -10,20 +10,18 @@ import qualified Control.Exception as X
 
 main :: IO ()
 main =
-  do Allegro.initialize
-     d <- createDisplay (Windowed False) 800 600
-     do Keyboard.install
-        q <- createEventQueue
+  allegro $
+  withDisplay (Windowed False) 800 600 $ \d ->
+  do keyboard <- createKeyboard
 
-        registerEventSource q Keyboard
-        let go = do ev <- waitForEvent q
-                    print $ evType ev
-                    case ev of
-                      KeyChar (evKeyChar -> Just 'q') -> return ()
-                      _ -> go
-        go
-
-      `X.finally` destroyDisplay d
+     q <- createEventQueue
+     registerEventSource q keyboard
+     let go = do ev <- waitForEvent q
+                 print $ evType ev
+                 case ev of
+                   KeyChar (evKeyChar -> Just 'q') -> return ()
+                   _ -> go
+     go
 
 
 

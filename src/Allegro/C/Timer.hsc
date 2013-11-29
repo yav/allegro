@@ -14,6 +14,9 @@ foreign import ccall "al_create_timer"
 foreign import ccall "al_destroy_timer"
   al_destroy_timer :: Ptr TIMER -> IO ()
 
+foreign import ccall "&al_destroy_timer"
+  al_destroy_timer_addr :: FunPtr (Ptr TIMER -> IO ())
+
 foreign import ccall "al_start_timer"
   al_start_timer :: Ptr TIMER -> IO ()
 

@@ -14,6 +14,9 @@ foreign import ccall unsafe "al_install_mouse"
 foreign import ccall unsafe "al_uninstall_mouse"
   al_uninstall_mouse :: IO ()
 
+foreign import ccall unsafe "&shal_uninstall_mouse"
+  shal_uninstall_mouse_addr :: FunPtr (Ptr () -> IO ())
+
 foreign import ccall unsafe "al_is_mouse_installed"
   al_is_mouse_installed :: IO Bool
 

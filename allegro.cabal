@@ -19,6 +19,7 @@ library
                        Allegro.Keyboard,
                        Allegro.Mouse,
                        Allegro.Types,
+                       Allegro.Timer,
                        Allegro.C,
                        Allegro.C.Types,
                        Allegro.C.Display,
@@ -30,7 +31,7 @@ library
                        Allegro.C.Event,
                        Allegro.C.Font,
                        Allegro.C.Timer
-  build-depends:       base >=4.6, array
+  build-depends:       base >=4.6
   hs-source-dirs:      src
   c-sources:           cbits/wrappers.c
   build-tools:         hsc2hs

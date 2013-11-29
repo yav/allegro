@@ -20,8 +20,9 @@ main =
                       , "ascent = " ++ show (ascent f)
                       , "descent = " ++ show (descent f)
                       ]
+     keyboard <- createKeyboard
      q <- createEventQueue
-     registerEventSource q Keyboard
+     registerEventSource q keyboard
      let go n =
           do ev <- waitForEvent q
              drawText f red (fromIntegral (div n 20 * 2 * textWidth f "m"))

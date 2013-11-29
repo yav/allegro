@@ -14,6 +14,9 @@ foreign import ccall "al_install_keyboard"
 foreign import ccall "al_uninstall_keyboard"
   al_uninstall_keyboard :: IO ()
 
+foreign import ccall "&shal_uninstall_keyboard"
+  shal_uninstall_keyboard_addr :: FunPtr (Ptr () -> IO ())
+
 foreign import ccall "al_is_keyboard_installed"
   al_is_keyboard_installed :: IO Bool
 

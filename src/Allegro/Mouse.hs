@@ -1,13 +1,13 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 module Allegro.Mouse
-  ( install
-  , uninstall
-  , isInstalled
+  ( createMouse
   , FailedToInstallMouse(..)
   ) where
 
+import           Allegro.Types
 import           Allegro.C.Mouse
 
+import           Foreign(newForeignPtr,nullPtr)
 import           Data.Typeable(Typeable)
 import qualified Control.Exception as X
 import           Control.Monad(unless)
@@ -19,15 +19,10 @@ instance X.Exception FailedToInstallMouse
 
 -- | Try to install the keyboard driver.
 -- Throws 'FailedToInstallMouse' if something goes wrong.
-install :: IO ()
-install =
+createMouse :: IO Mouse
+createMouse =
   do ok <- al_install_mouse
      unless ok $ X.throwIO FailedToInstallMouse
-
-uninstall :: IO ()
-uninstall = al_uninstall_mouse
-
-isInstalled :: IO Bool
-isInstalled = al_is_mouse_installed
+     Mouse `fmap` newForeignPtr shal_uninstall_mouse_addr nullPtr
 
 

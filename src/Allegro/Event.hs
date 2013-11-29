@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE TypeFamilies #-}
 module Allegro.Event
   (
     -- * Event Queues
@@ -9,6 +10,7 @@ module Allegro.Event
   , waitForEvent
   , unregisterEventSource
   , HasEventSource
+  , eventSource
 
     -- * Events
   , Event(..)
@@ -48,43 +50,55 @@ import Allegro.Types
 import Allegro.C.Types
 import Allegro.C.Event
 import Allegro.C.EventQueue
+import Allegro.C.Timer
 import Allegro.C.Display(al_get_display_event_source)
 import Allegro.C.Keyboard
 import Allegro.C.Mouse
 
 import qualified Control.Exception as X
+import           Data.IORef
 import           Control.Monad ( when, guard )
 import           Control.Applicative ( (<$>), (<*>) )
 import           Data.Typeable ( Typeable )
 import           Foreign  ( Ptr, nullPtr, allocaBytes
-                          , ForeignPtr, newForeignPtr, withForeignPtr
+                          , ForeignPtr, newForeignPtr
+                          , castForeignPtr
                           )
 
 
 newtype EventSource = EventSource (Ptr EVENT_SOURCE)
                       deriving (Eq)
 
-newtype EventQueue  = EventQueue  (ForeignPtr EVENT_QUEUE)
+-- The event queue keeps track of twho's registered with it, so
+-- that they don;t get destroyed prematurely.
+data EventQueue     = EventQueue { eqPtr :: ForeignPtr EVENT_QUEUE
+                                 , eqReg :: IORef [ ForeignPtr () ]
+                                 }
                       deriving Eq
 
-withEventQueuePtr :: EventQueue -> (Ptr EVENT_QUEUE -> IO a) -> IO a
-withEventQueuePtr (EventQueue q) = withForeignPtr q
+instance Foreign EventQueue where
+  type CType EventQueue = EVENT_QUEUE
+  foreignPtr = eqPtr
 
 class HasEventSource t where
-  eventSource :: t -> IO EventSource
-
-instance HasEventSource EventSource where
-  eventSource = return
+  eventSource   :: t -> IO EventSource
+  foreignClient :: t -> Maybe (ForeignPtr ())
 
 instance HasEventSource Display where
   eventSource (Display p) = EventSource `fmap` al_get_display_event_source p
+  foreignClient _ = Nothing -- XXX?
 
 instance HasEventSource Keyboard where
-  eventSource Keyboard = EventSource `fmap` al_get_keyboard_event_source
+  eventSource _ = EventSource `fmap` al_get_keyboard_event_source
+  foreignClient = Just . foreignPtr
 
 instance HasEventSource Mouse where
-  eventSource Mouse = EventSource `fmap` al_get_mouse_event_source
+  eventSource _ = EventSource `fmap` al_get_mouse_event_source
+  foreignClient = Just . foreignPtr
 
+instance HasEventSource Timer where
+  eventSource t = EventSource `fmap` withPtr t al_get_timer_event_source
+  foreignClient (Timer t) = Just (castForeignPtr t)
 
 data FailedToCreateEventQueue = FailedToCreateEventQueue
   deriving (Typeable,Show)
@@ -95,22 +109,36 @@ createEventQueue :: IO EventQueue
 createEventQueue =
   do p <- al_create_event_queue
      when (p == nullPtr) $ X.throwIO FailedToCreateEventQueue
-     EventQueue `fmap` newForeignPtr al_destroy_event_queue_addr p
+     fp <- newForeignPtr al_destroy_event_queue_addr p
+     clients <- newIORef []
+     return EventQueue { eqPtr = fp, eqReg = clients }
 
 registerEventSource :: HasEventSource t => EventQueue -> t -> IO ()
 registerEventSource q x =
   do EventSource s <- eventSource x
-     withEventQueuePtr q $ \qp -> al_register_event_source qp s
+     case foreignClient x of
+       Just fp -> atomicModifyIORef (eqReg q) $ \as -> (fp : as, ())
+       Nothing -> return ()
+     withPtr q $ \qp -> al_register_event_source qp s
 
 unregisterEventSource :: HasEventSource t => EventQueue -> t -> IO ()
 unregisterEventSource q x =
   do EventSource s <- eventSource x
-     withEventQueuePtr q $ \qp -> al_unregister_event_source qp s
+     withPtr q $ \qp -> al_unregister_event_source qp s
+     case foreignClient x of
+       Just fp -> atomicModifyIORef (eqReg q) $ \as -> let as' = rm fp as id
+                                                       in seq as' (as',())
+       Nothing -> return ()
+  where
+  rm _ [] k                 = k []
+  rm v (a : as) k | v == a  = k as
+  rm v (a : as) k           = rm v as $ \bs -> k (a : bs)
+
 
 waitForEvent :: EventQueue -> IO Event
 waitForEvent q =
   allocaBytes event_size_bytes $ \evPtr ->
-    do withEventQueuePtr q $ \qp -> al_wait_for_event qp evPtr
+    do withPtr q $ \qp -> al_wait_for_event qp evPtr
        parseEvent evPtr
 
 
