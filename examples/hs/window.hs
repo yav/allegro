@@ -17,7 +17,7 @@ main =
      let go = do ev <- waitForEvent q
                  print $ evType ev
                  case ev of
-                   KeyChar (evKeyChar -> Just 'q') -> return ()
+                   KeyDown (evKey -> key_ESCAPE) -> return ()
                    _ -> go
      go
 

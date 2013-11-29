@@ -31,7 +31,7 @@ main =
              flipDisplay
              print $ evType ev
              case ev of
-               KeyChar (evKeyChar -> Just 'q') -> return ()
+               KeyDown (evKey -> key_ESCAPE) -> return ()
                _ -> go (n + 1)
      go 0
 
