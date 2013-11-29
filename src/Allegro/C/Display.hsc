@@ -1,9 +1,11 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 module Allegro.C.Display where
 
-import Foreign
-import Foreign.C.Types
-import Allegro.C.Types
+import Allegro.C.Types (DISPLAY, EVENT_SOURCE, BITMAP)
+
+import Foreign (Ptr)
+import Foreign.C.Types(CInt(..))
+import Foreign.C.String (CString)
 
 #include <allegro5/allegro.h>
 
@@ -25,9 +27,14 @@ foreign import ccall unsafe "al_flip_display"
 foreign import ccall unsafe "al_update_display_region"
   al_update_display_region :: CInt -> CInt -> CInt -> CInt -> IO ()
 
-
 foreign import ccall unsafe "al_set_new_display_flags"
   al_set_new_display_flags :: CInt -> IO ()
+
+foreign import ccall unsafe "al_set_window_title"
+  al_set_window_title :: Ptr DISPLAY -> CString -> IO ()
+
+foreign import ccall unsafe "al_set_display_icon"
+  al_set_display_icon :: Ptr DISPLAY -> Ptr BITMAP -> IO ()
 
 
 windowed

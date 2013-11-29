@@ -39,4 +39,9 @@ instance Foreign Timer where
   type CType Timer = TIMER
   foreignPtr (Timer t) = t
 
+newtype Bitmap = Bitmap (ForeignPtr BITMAP) deriving Eq
+
+instance Foreign Bitmap where
+  type CType Bitmap = BITMAP
+  foreignPtr (Bitmap b) = b
 

@@ -14,15 +14,15 @@ red = Color 1 0 0 0
 main :: IO ()
 main =
   allegro $
-  withDisplay (Windowed False) 640 480 $ \d ->
-  do f <- loadFont "../resources/font.ttf" 12 Font.defaultFlags
+  withDisplay FixedWindow 640 480 $ \d ->
+  do setWindowTitle d "Hello"
+     f <- loadFont "../resources/font.ttf" 12 Font.defaultFlags
      putStr $ unlines [ "lineHeight = " ++ show (lineHeight f)
                       , "ascent = " ++ show (ascent f)
                       , "descent = " ++ show (descent f)
                       ]
-     keyboard <- createKeyboard
      q <- createEventQueue
-     registerEventSource q keyboard
+     registerEventSource q =<< createKeyboard
      let go n =
           do ev <- waitForEvent q
              drawText f red (fromIntegral (div n 20 * 2 * textWidth f "m"))
