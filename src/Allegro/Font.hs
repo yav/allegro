@@ -1,15 +1,15 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE RecordWildCards #-}
 module Allegro.Font
-  ( load
-  , Flags (..)
-  , defaultFlags
+  ( loadFont
+  , FontFlags (..)
+  , defaultFontFlags
 
   -- * Fonts
   , Font
-  , lineHeight
-  , ascent
-  , descent
+  , fontLineHeight
+  , fontAscent
+  , fontDescent
 
   -- * Dimensions of text using this font
   , textWidth
@@ -45,18 +45,18 @@ newtype Font = Font (ForeignPtr FONT)
 withFontPtr :: Font -> (Ptr FONT -> IO a) -> IO a
 withFontPtr (Font q) = withForeignPtr q
 
-data Flags = Flags { noKerning, monochrome, noAutoHint :: Bool }
+data FontFlags = FontFlags { noKerning, monochrome, noAutoHint :: Bool }
 
-defaultFlags :: Flags
-defaultFlags = Flags { noKerning = False
-                     , monochrome = False
-                     , noAutoHint = False }
+defaultFontFlags :: FontFlags
+defaultFontFlags = FontFlags { noKerning = False
+                             , monochrome = False
+                             , noAutoHint = False }
 
-load :: FilePath
-     -> Int     -- ^ Font size
-     -> Flags
-     -> IO Font
-load file sz Flags { .. } =
+loadFont :: FilePath
+         -> Int     -- ^ Font size
+         -> FontFlags
+         -> IO Font
+loadFont file sz FontFlags { .. } =
   do ptr <- withCString file $ \f -> al_load_font f (fromIntegral sz) fs
      when (ptr == nullPtr) $ X.throwIO (FailedToLoadFont file)
      Font `fmap` newForeignPtr al_destroy_font_addr ptr
@@ -75,14 +75,14 @@ instance X.Exception FailedToLoadFont
 fontInfo :: (Ptr FONT -> IO CInt) -> Font -> Int
 fontInfo info f = fromIntegral $ unsafeDupablePerformIO $ withFontPtr f info
 
-lineHeight :: Font -> Int
-lineHeight = fontInfo al_get_font_line_height
+fontLineHeight :: Font -> Int
+fontLineHeight = fontInfo al_get_font_line_height
 
-ascent :: Font -> Int
-ascent = fontInfo al_get_font_ascent
+fontAscent :: Font -> Int
+fontAscent = fontInfo al_get_font_ascent
 
-descent :: Font -> Int
-descent = fontInfo al_get_font_descent
+fontDescent :: Font -> Int
+fontDescent = fontInfo al_get_font_descent
 
 textWidth :: Font -> String -> Int
 textWidth f x = fontInfo (\p -> withCString x (al_get_text_width p)) f

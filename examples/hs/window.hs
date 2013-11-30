@@ -1,23 +1,18 @@
 import Allegro
 import Allegro.Display
-import Allegro.EventQueue as EventQueue
-import Allegro.Keyboard as Keyboard
-
-
-import qualified Control.Exception as X
-
+import Allegro.EventQueue
+import Allegro.Keyboard
 
 main :: IO ()
 main =
   allegro $
-  withDisplay FixedWindow 800 600 $ \d ->
-  do q <- EventQueue.create
-     EventQueue.register q =<< Keyboard.create
-     let go = do ev <- EventQueue.wait q
+  withDisplay FixedWindow 800 600 $ \_ ->
+  do q <- createEventQueue
+     registerEventSource q =<< installKeyboard
+     let go = do ev <- waitForEvent q
                  print $ evType ev
                  case ev of
-                   KeyDown k
-                     | evKey k == key_ESCAPE -> return ()
+                   KeyDown k | evKey k == key_ESCAPE -> return ()
                    _ -> go
      go
 

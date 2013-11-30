@@ -1,7 +1,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 module Allegro.Mouse
   ( -- * Initialization
-    create
+    installMouse
   , Mouse
 
     -- * Events
@@ -40,8 +40,8 @@ instance EventSource Mouse where
 
 -- | Try to install the keyboard driver.
 -- Throws 'FailedToInstallMouse' if something goes wrong.
-create :: IO Mouse
-create =
+installMouse :: IO Mouse
+installMouse =
   do ok <- al_install_mouse
      unless ok $ X.throwIO FailedToInstallMouse
      Mouse `fmap` newForeignPtr shal_uninstall_mouse_addr nullPtr

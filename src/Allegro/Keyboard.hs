@@ -2,7 +2,7 @@
 module Allegro.Keyboard
   ( -- * Operations
     Keyboard
-  , create
+  , installKeyboard
 
     -- * Events
   , KeyEvent
@@ -184,8 +184,8 @@ instance EventSource Keyboard where
 
 -- | Try to install the keyboard driver.
 -- Throws '`FailedToInstallKeyboard' if we something goes wrong.
-create :: IO Keyboard
-create =
+installKeyboard :: IO Keyboard
+installKeyboard =
   do ok <- al_install_keyboard
      unless ok $ X.throwIO FailedToInstallKeyboard
      Keyboard `fmap` newForeignPtr shal_uninstall_keyboard_addr nullPtr
