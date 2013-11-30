@@ -1,4 +1,3 @@
-{-# LANGUAGE TypeFamilies #-}
 module Allegro.Types where
 
 import Allegro.C.Types
