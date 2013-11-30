@@ -1,8 +1,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE RecordWildCards #-}
 module Allegro.Font
-  ( initialize, shutdown
-  , loadFont
+  ( load
   , Flags (..)
   , defaultFlags
 
@@ -22,7 +21,6 @@ module Allegro.Font
   , Alignment(..)
 
   -- * Exceptions
-  , FailedToInitializeFonts(..)
   , FailedToLoadFont(..)
   ) where
 
@@ -31,7 +29,7 @@ import Allegro.C.Types
 import Allegro.C.Font
 
 import qualified Control.Exception as X
-import           Control.Monad ( when, unless )
+import           Control.Monad ( when )
 import           Data.Bits ( (.|.) )
 import           Data.Typeable ( Typeable )
 import           Foreign  ( Ptr, nullPtr, alloca, peek
@@ -41,20 +39,6 @@ import           Foreign.C.Types(CInt)
 import           Foreign.C.String(withCString)
 import           System.IO.Unsafe(unsafeDupablePerformIO)
 
-
-initialize :: IO ()
-initialize =
-  do al_init_font_addon
-     ok <- al_init_ttf_addon
-     unless ok $ X.throwIO FailedToInitializeFonts
-
-shutdown :: IO ()
-shutdown = al_shutdown_ttf_addon
-
-data FailedToInitializeFonts = FailedToInitializeFonts
-  deriving (Typeable,Show)
-
-instance X.Exception FailedToInitializeFonts
 
 newtype Font = Font (ForeignPtr FONT)
 
@@ -68,8 +52,11 @@ defaultFlags = Flags { noKerning = False
                      , monochrome = False
                      , noAutoHint = False }
 
-loadFont :: FilePath -> Int -> Flags -> IO Font
-loadFont file sz Flags { .. } =
+load :: FilePath
+     -> Int     -- ^ Font size
+     -> Flags
+     -> IO Font
+load file sz Flags { .. } =
   do ptr <- withCString file $ \f -> al_load_font f (fromIntegral sz) fs
      when (ptr == nullPtr) $ X.throwIO (FailedToLoadFont file)
      Font `fmap` newForeignPtr al_destroy_font_addr ptr

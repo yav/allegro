@@ -3,18 +3,20 @@ module Allegro
   ( -- * Initialization
     allegro
 
-  -- * Objects and Names
-  , Object
-  , Name
-  , isNamed
+  -- * Named objects
+  , Name, HasName(..)
+
+  -- * Colors
+  , Color(..)
 
   -- * Exceptions
   , FailedToInitialize(..)
+  , FailedToInitializeFonts(..)
   ) where
 
-import Allegro.Types (Object, Name, isNamed)
+import Allegro.Types (Name, HasName, isNamed, Color(..))
 import Allegro.C
-import qualified Allegro.Font as Font
+import Allegro.C.Font
 
 import           Control.Concurrent ( runInBoundThread )
 import qualified Control.Exception as X
@@ -26,8 +28,19 @@ allegro prog =
   runInBoundThread $
   do ok <- al_init
      unless ok $ X.throwIO FailedToInitialize
-     Font.initialize
-     prog `X.finally` Font.shutdown
+     initializeFonts
+     prog `X.finally` shutdownFonts
+
+
+
+initializeFonts :: IO ()
+initializeFonts =
+  do al_init_font_addon
+     ok <- al_init_ttf_addon
+     unless ok $ X.throwIO FailedToInitializeFonts
+
+shutdownFonts :: IO ()
+shutdownFonts = al_shutdown_ttf_addon
 
 
 
@@ -35,6 +48,12 @@ data FailedToInitialize = FailedToInitialize
   deriving (Typeable,Show)
 
 instance X.Exception FailedToInitialize
+
+data FailedToInitializeFonts = FailedToInitializeFonts
+  deriving (Typeable,Show)
+
+instance X.Exception FailedToInitializeFonts
+
 
 
 

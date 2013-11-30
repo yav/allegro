@@ -1,8 +1,19 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 module Allegro.Keyboard
-  ( Keyboard(..)
-  , createKeyboard
-  , FailedToInstallKeyboard(..)
+  ( -- * Operations
+    Keyboard
+  , create
+
+    -- * Events
+  , KeyEvent
+  , HasKey(..)
+
+  , KeyCharEvent
+  , evKeyChar
+  , evKeyMod
+  , evKeyRepeated
+
+
 
   -- * Keys
   , Key
@@ -118,6 +129,7 @@ module Allegro.Keyboard
   -- * Key modifiers
   , KeyMod
 
+  -- ** Modifier sets
   , kmNone
   , kmAdd
   , kmCommon
@@ -125,6 +137,7 @@ module Allegro.Keyboard
   , kmDiff
   , kmHas
 
+  -- ** Single modifiers
   , km_SHIFT
   , km_CTRL
   , km_ALT
@@ -141,24 +154,38 @@ module Allegro.Keyboard
   , km_ACCENT2
   , km_ACCENT3
   , km_ACCENT4
+
+  -- * Exceptions
+  , FailedToInstallKeyboard(..)
   ) where
 
-import Allegro.Types
+import Allegro.Types ( EventSource(..)
+                     , ParseEvent(..)
+                     , SomeEvent, HasTimestamp(..), HasType(..)
+                     , Display(..), HasDisplay(..)
+                     )
 import Allegro.C.Keyboard
+import Allegro.C.Event
 
-import           Control.Monad ( unless )
+import           Control.Applicative ( (<$>), (<*>) )
+import           Control.Monad ( unless, guard )
 import qualified Control.Exception as X
 import           Data.Bits ( (.|.), (.&.), complement )
 import           Data.Typeable(Typeable)
-import           Foreign(newForeignPtr,nullPtr)
+import           Foreign(ForeignPtr, newForeignPtr, nullPtr)
 import           Foreign.C.String(peekCString)
 import           System.IO.Unsafe(unsafeDupablePerformIO)
 
+newtype Keyboard  = Keyboard (ForeignPtr ())    deriving Eq
+
+instance EventSource Keyboard where
+  eventSource _ = al_get_keyboard_event_source
+  foreignClient (Keyboard t) = Just t
 
 -- | Try to install the keyboard driver.
 -- Throws '`FailedToInstallKeyboard' if we something goes wrong.
-createKeyboard :: IO Keyboard
-createKeyboard =
+create :: IO Keyboard
+create =
   do ok <- al_install_keyboard
      unless ok $ X.throwIO FailedToInstallKeyboard
      Keyboard `fmap` newForeignPtr shal_uninstall_keyboard_addr nullPtr
@@ -173,21 +200,81 @@ keyName (Key x) = unsafeDupablePerformIO
                 $ peekCString
                 $ al_keycode_to_name x
 
+-- | No modifiers
 kmNone :: KeyMod
 kmNone = KM 0
 
+-- | Union: modifiers that are in either of parameters.
 kmAdd :: KeyMod -> KeyMod -> KeyMod
 kmAdd (KM x) (KM y) = KM (x .|. y)
 
+-- | Intersection: modifiers that appear in both parameters.
 kmCommon :: KeyMod -> KeyMod -> KeyMod
 kmCommon (KM x) (KM y) = KM (x .&. y)
 
+-- | Complement: modifiers that are not in the parameter.
 kmOthers :: KeyMod -> KeyMod
 kmOthers (KM x) = KM (complement x)
 
+-- | Difference: modifiers that are in the first but not the second paramter.
 kmDiff :: KeyMod -> KeyMod -> KeyMod
 kmDiff x y = kmCommon x (kmOthers y)
 
+-- | Subset: Does the first parameter contain all the members of the second?
 kmHas :: KeyMod -> KeyMod -> Bool
 kmHas x y = kmCommon x y == y
+
+
+---------------------------------------------------------------------------------- Keyboard events
+
+data KeyEvent = EvKey
+  { kSuper'   :: {-# UNPACK #-} !SomeEvent
+  , kDisplay' :: Display
+  , kKey'     :: Key
+  }
+
+
+class HasKey t where
+  evKey       :: t -> Key
+
+
+instance ParseEvent KeyEvent where
+  eventDetails p = EvKey <$> eventDetails p
+                         <*> (Display <$> event_keyboard_display p)
+                         <*> (Key <$> event_keyboard_keycode p)
+
+
+instance HasType      KeyEvent where evType      = evType      . kSuper'
+instance HasTimestamp KeyEvent where evTimestamp = evTimestamp . kSuper'
+instance HasDisplay   KeyEvent where evDisplay   = kDisplay'
+instance HasKey       KeyEvent where evKey       = kKey'
+
+
+
+data KeyCharEvent = EvKeyChar
+  { kcSuper'      :: {-# UNPACK #-} !KeyEvent
+  , evKeyChar     :: Maybe Char
+  , evKeyMod      :: KeyMod
+  , evKeyRepeated :: Bool
+  }
+
+instance ParseEvent KeyCharEvent where
+  eventDetails p = EvKeyChar <$> eventDetails p
+                             <*> parseChar
+                             <*> (KM <$> event_keyboard_modifiers p)
+                             <*> event_keyboard_repeat p
+
+    where parseChar = do x <- event_keyboard_unichar p
+                         return $ do guard (x > 0)
+                                     return $ toEnum $ fromEnum x
+
+instance HasType      KeyCharEvent where evType      = evType      . kcSuper'
+instance HasTimestamp KeyCharEvent where evTimestamp = evTimestamp . kcSuper'
+instance HasDisplay   KeyCharEvent where evDisplay   = evDisplay   . kcSuper'
+instance HasKey       KeyCharEvent where evKey       = evKey       . kcSuper'
+
+
+
+
+
 
