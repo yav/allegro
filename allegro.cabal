@@ -32,6 +32,8 @@ library
                        Allegro.C.Event,
                        Allegro.C.Font,
                        Allegro.C.Timer
+                       Allegro.C.Image
+                       Allegro.C.Audio
   build-depends:       base >=4.6
   hs-source-dirs:      src
   c-sources:           cbits/wrappers.c

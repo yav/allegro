@@ -7,6 +7,9 @@ import Control.Applicative ( (<$>), (<*>) )
 import Data.IORef (IORef)
 import Foreign  ( Ptr, ForeignPtr, withForeignPtr )
 
+
+--------------------------------------------------------------------------------
+
 newtype Display = Display (Ptr DISPLAY)
                   deriving (Eq,Show)
 
