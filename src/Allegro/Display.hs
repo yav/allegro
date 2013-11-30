@@ -79,12 +79,12 @@ flipDisplay = al_flip_display
 
 data DisplayEvent = EvDisplay
   { dSuper'   :: {-# UNPACK #-} !SomeEvent
-  , dDisplay' :: Display
+  , dDisplay' :: !Display
   }
 
 instance ParseEvent DisplayEvent where
-  eventDetails p = EvDisplay <$> eventDetails p
-                             <*> (Display <$> event_display_source p)
+  eventDetails x p = EvDisplay <$> eventDetails x p
+                               <*> (Display <$> event_display_source p)
 
 instance HasType      DisplayEvent where evType      = evType      . dSuper'
 instance HasTimestamp DisplayEvent where evTimestamp = evTimestamp . dSuper'

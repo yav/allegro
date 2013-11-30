@@ -33,20 +33,8 @@ import qualified Control.Exception as X
 import           Data.IORef
 import           Control.Monad ( when )
 import           Data.Typeable ( Typeable )
-import           Foreign  ( Ptr, nullPtr, allocaBytes
-                          , ForeignPtr, newForeignPtr, withForeignPtr
-                          )
+import           Foreign  ( Ptr, nullPtr, allocaBytes, newForeignPtr )
 
-
--- The event queue keeps track of twho's registered with it, so
--- that they don;t get destroyed prematurely.
-data EventQueue     = EventQueue { eqPtr :: ForeignPtr EVENT_QUEUE
-                                 , eqReg :: IORef [ ForeignPtr () ]
-                                 }
-                      deriving Eq
-
-withQ :: EventQueue -> (Ptr EVENT_QUEUE -> IO a) -> IO a
-withQ = withForeignPtr . eqPtr
 
 data FailedToCreateEventQueue = FailedToCreateEventQueue
   deriving (Typeable,Show)
@@ -87,59 +75,59 @@ waitForEvent :: EventQueue -> IO Event
 waitForEvent q =
   allocaBytes event_size_bytes $ \evPtr ->
     do withQ q $ \qp -> al_wait_for_event qp evPtr
-       parseEvent evPtr
+       parseEvent q evPtr
 
 
-parseEvent :: Ptr EVENT -> IO Event
-parseEvent p =
+parseEvent :: EventQueue -> Ptr EVENT -> IO Event
+parseEvent q p =
   do t <- event_type p
      case () of
 
           -- Display
        _ | t == event_display_close ->
-             DisplayClose `fmap` eventDetails p
+             DisplayClose `fmap` eventDetails q p
 
          | t == event_display_switch_in ->
-             DisplaySwitchIn `fmap` eventDetails p
+             DisplaySwitchIn `fmap` eventDetails q p
 
          | t == event_display_switch_out ->
-             DisplaySwitchOut `fmap` eventDetails p
+             DisplaySwitchOut `fmap` eventDetails q p
 
          -- Keyboard
          | t == event_key_down ->
-             KeyDown `fmap` eventDetails p
+             KeyDown `fmap` eventDetails q p
 
          | t == event_key_up ->
-             KeyUp `fmap` eventDetails p
+             KeyUp `fmap` eventDetails q p
 
          | t == event_key_char ->
-             KeyChar `fmap` eventDetails p
+             KeyChar `fmap` eventDetails q p
 
          -- Mouse
          | t == event_mouse_enter_display ->
-             MouseEnter `fmap` eventDetails p
+             MouseEnter `fmap` eventDetails q p
 
          | t == event_mouse_leave_display ->
-             MouseLeave `fmap` eventDetails p
+             MouseLeave `fmap` eventDetails q p
 
          | t == event_mouse_axes ->
-             MouseMove `fmap` eventDetails p
+             MouseMove `fmap` eventDetails q p
 
          | t == event_mouse_warped ->
-             MouseWarp `fmap` eventDetails p
+             MouseWarp `fmap` eventDetails q p
 
          | t == event_mouse_button_down ->
-             MouseButtonDown `fmap` eventDetails p
+             MouseButtonDown `fmap` eventDetails q p
 
          | t == event_mouse_button_up ->
-             MouseButtonUp `fmap` eventDetails p
+             MouseButtonUp `fmap` eventDetails q p
 
          | t == event_timer ->
-             Time `fmap` eventDetails p
+             Time `fmap` eventDetails q p
 
          -- Fallback
          | otherwise ->
-             Unknown `fmap` eventDetails p
+             Unknown `fmap` eventDetails q p
 
 data Event  = DisplayClose     {-# UNPACK #-} !DisplayEvent
             | DisplaySwitchIn  {-# UNPACK #-} !DisplayEvent

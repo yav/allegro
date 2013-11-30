@@ -3,9 +3,6 @@ module Allegro
   ( -- * Initialization
     allegro
 
-  -- * Named objects
-  , Name, HasName(..)
-
   -- * Colors
   , Color(..)
 
@@ -14,7 +11,7 @@ module Allegro
   , FailedToInitializeFonts(..)
   ) where
 
-import Allegro.Types (Name, HasName, isNamed, Color(..))
+import Allegro.Types (Color(..))
 import Allegro.C
 import Allegro.C.Font
 

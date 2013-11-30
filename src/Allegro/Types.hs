@@ -5,9 +5,9 @@ import Allegro.C.Types
 import Allegro.C.Display
 import Allegro.C.Event
 import Control.Applicative ( (<$>), (<*>) )
+import Data.IORef (IORef)
 import Foreign  ( Ptr, ForeignPtr, withForeignPtr )
 
-newtype Bitmap  = Bitmap (ForeignPtr BITMAP) deriving Eq
 newtype Display = Display (Ptr DISPLAY)
                   deriving (Eq,Show)
 
@@ -15,35 +15,39 @@ data Color      = Color { cRed, cGreen, cBlue, cAlpha :: Float }
                   deriving (Eq,Show)
 
 --------------------------------------------------------------------------------
+newtype Bitmap  = Bitmap (ForeignPtr BITMAP) deriving Eq
+
 withBitmapPtr :: Bitmap -> (Ptr BITMAP -> IO a) -> IO a
 withBitmapPtr (Bitmap x) = withForeignPtr x
 
+
 --------------------------------------------------------------------------------
+-- The event queue keeps track of who's registered with it, so
+-- that they don't get destroyed prematurely.
+data EventQueue     = EventQueue { eqPtr :: ForeignPtr EVENT_QUEUE
+                                 , eqReg :: IORef [ ForeignPtr () ]
+                                 }
+                      deriving Eq
+
+withQ :: EventQueue -> (Ptr EVENT_QUEUE -> IO a) -> IO a
+withQ = withForeignPtr . eqPtr
+
+
+
+class ParseEvent t where
+  eventDetails :: EventQueue -> Ptr EVENT -> IO t
+
+
+
+class EventSource t where
+  eventSource   :: t -> IO (Ptr EVENT_SOURCE)
+  foreignClient :: t -> Maybe (ForeignPtr ())
+
 instance EventSource Display where
   eventSource (Display p) = al_get_display_event_source p
   foreignClient _ = Nothing -- XXX?
 
 
-class HasName t where
-  type CType t
-  isNamed :: t -> Name t -> Bool
-
-
-{- | The name of an object.
-Object names are used to recognize an object (see 'isNamed').
-The main use-case for 'Name' is to link events with the object that
-issued them.  A name is valid only while its corresponding object is alive.
--}
-newtype Name t    = Name (Ptr (CType t)) deriving Eq
-
-
-
-class ParseEvent t where
-  eventDetails :: Ptr EVENT -> IO t
-
-class EventSource t where
-  eventSource   :: t -> IO (Ptr EVENT_SOURCE)
-  foreignClient :: t -> Maybe (ForeignPtr ())
 
 --------------------------------------------------------------------------------
 -- Common Events
@@ -65,8 +69,8 @@ class HasDisplay t where
 
 
 instance ParseEvent SomeEvent where
-  eventDetails p = EvAny <$> (fromIntegral <$> event_type p)
-                         <*> (realToFrac   <$> event_any_timestamp p)
+  eventDetails _ p = EvAny <$> (fromIntegral <$> event_type p)
+                           <*> (realToFrac   <$> event_any_timestamp p)
 
 instance HasType      SomeEvent where evType      = evType'
 instance HasTimestamp SomeEvent where evTimestamp = evTimestamp'

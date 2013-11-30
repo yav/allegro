@@ -51,17 +51,17 @@ create =
 
 data MouseEvent   = ME
   { meSuper'    :: {-# UNPACK #-} !SomeEvent
-  , meDisplay'  :: Display
-  , meX', meY', meZ', meW' :: Int
+  , meDisplay'  :: !Display
+  , meX', meY', meZ', meW' :: !Int
   }
 
 instance ParseEvent MouseEvent where
-  eventDetails p = ME <$> eventDetails p
-                      <*> (Display <$> event_mouse_display p)
-                      <*> (fromIntegral <$> event_mouse_x p)
-                      <*> (fromIntegral <$> event_mouse_y p)
-                      <*> (fromIntegral <$> event_mouse_z p)
-                      <*> (fromIntegral <$> event_mouse_w p)
+  eventDetails q p = ME <$> eventDetails q p
+                        <*> (Display <$> event_mouse_display p)
+                        <*> (fromIntegral <$> event_mouse_x p)
+                        <*> (fromIntegral <$> event_mouse_y p)
+                        <*> (fromIntegral <$> event_mouse_z p)
+                        <*> (fromIntegral <$> event_mouse_w p)
 
 instance HasType      MouseEvent where evType      = evType      . meSuper'
 instance HasTimestamp MouseEvent where evTimestamp = evTimestamp . meSuper'
@@ -79,13 +79,13 @@ instance HasMouseAxis MouseEvent where
 
 data MouseMoveEvent    = MME
   { mmeSuper' :: {-# UNPACK #-} !MouseEvent
-  , evMouseDX, evMouseDY, evMouseDZ, evMouseDW :: Int
+  , evMouseDX, evMouseDY, evMouseDZ, evMouseDW :: !Int
   }
 
 instance ParseEvent MouseMoveEvent where
-  eventDetails p = MME <$> eventDetails p
-                       <*> (fromIntegral <$> event_mouse_dx p)
-                       <*> (fromIntegral <$> event_mouse_dy p)
+  eventDetails q p = MME <$> eventDetails q p
+                         <*> (fromIntegral <$> event_mouse_dx p)
+                         <*> (fromIntegral <$> event_mouse_dy p)
                        <*> (fromIntegral <$> event_mouse_dz p)
                        <*> (fromIntegral <$> event_mouse_dw p)
 
@@ -107,12 +107,12 @@ instance HasMouseAxis MouseMoveEvent where
 
 data MouseButtonEvent  = MBE
   { mbeSuper'     :: {-# UNPACK #-} !MouseEvent
-  , evMouseButton :: Int
+  , evMouseButton :: !Int
   }
 
 instance ParseEvent MouseButtonEvent where
-  eventDetails p = MBE <$> eventDetails p
-                       <*> (fromIntegral <$> event_mouse_button p)
+  eventDetails q p = MBE <$> eventDetails q p
+                         <*> (fromIntegral <$> event_mouse_button p)
 
 instance HasType      MouseButtonEvent where evType      = evType     .mbeSuper'
 instance HasTimestamp MouseButtonEvent where evTimestamp = evTimestamp.mbeSuper'

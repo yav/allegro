@@ -30,12 +30,13 @@ import Allegro.C.Event
 
 import qualified Control.Exception as X
 import           Data.Int( Int64 )
+import           Data.IORef ( readIORef )
 import           Control.Applicative ( (<$>), (<*>) )
 import           Control.Monad ( when )
 import           Data.Typeable ( Typeable )
 import           Foreign ( ForeignPtr, newForeignPtr, castForeignPtr
                          , withForeignPtr
-                         , Ptr, nullPtr
+                         , Ptr, nullPtr, castPtr
                          )
 import           Foreign.ForeignPtr.Unsafe ( unsafeForeignPtrToPtr )
 
@@ -45,23 +46,9 @@ newtype Timer = Timer (ForeignPtr TIMER) deriving Eq
 withTimer :: Timer -> (Ptr TIMER -> IO a) -> IO a
 withTimer (Timer x) = withForeignPtr x
 
-instance HasName Timer where
-  type CType Timer = TIMER
-  isNamed (Timer x) (Name p) = unsafeForeignPtrToPtr x == p
-  -- XXX: Is this OK?
-  -- if this was the last reference to `x` it might get freed.
-  -- This seems OK, because if there really are no more references to it,
-  -- we are not going to make use of the object, even if we returned True.
-  -- Example:
-  -- if `isNamed x p` then f p else return ()
-  -- the `then` continuation still has a foreign pointer to `p`, so it
-  -- should not get freed.
-
-
 instance EventSource Timer where
   eventSource t           = withTimer t al_get_timer_event_source
   foreignClient (Timer t) = Just (castForeignPtr t)
-
 
 
 
@@ -108,14 +95,23 @@ setSpeed t x = withTimer t $ \p -> al_set_timer_speed p (realToFrac x)
 
 data TimerEvent = EvTimer
   { tiSuper' :: {-# UNPACK #-} !SomeEvent
-  , evTimer  :: Name Timer
-  , evCount  :: Int64
+  , evTimer  :: !Timer    -- strict to avoid holding on to clients of
+                          -- event queue.
+  , evCount  :: !Int64
   }
 
 instance ParseEvent TimerEvent where
-  eventDetails p = EvTimer <$> eventDetails p
-                           <*> (Name <$> event_timer_source p)
-                           <*> event_timer_count p
+  eventDetails q p = EvTimer <$> eventDetails q p
+                             <*> (getTimer =<< event_timer_source p)
+                             <*> event_timer_count p
+    where
+    getTimer t = findMe (castPtr t) <$> readIORef (eqReg q)
+
+    findMe :: Ptr () -> [ForeignPtr ()] -> Timer
+    findMe x (y:_) | x == unsafeForeignPtrToPtr y = Timer (castForeignPtr y)
+    findMe x (_:ys) = findMe x ys
+    findMe _ [] = error "Allegro bug: received event from unregistered timer."
+
 
 
 instance HasType      TimerEvent where evType      = evType' . tiSuper'

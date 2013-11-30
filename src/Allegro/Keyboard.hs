@@ -229,8 +229,8 @@ kmHas x y = kmCommon x y == y
 
 data KeyEvent = EvKey
   { kSuper'   :: {-# UNPACK #-} !SomeEvent
-  , kDisplay' :: Display
-  , kKey'     :: Key
+  , kDisplay' :: !Display
+  , kKey'     :: !Key
   }
 
 
@@ -239,9 +239,9 @@ class HasKey t where
 
 
 instance ParseEvent KeyEvent where
-  eventDetails p = EvKey <$> eventDetails p
-                         <*> (Display <$> event_keyboard_display p)
-                         <*> (Key <$> event_keyboard_keycode p)
+  eventDetails q p = EvKey <$> eventDetails q p
+                           <*> (Display <$> event_keyboard_display p)
+                           <*> (Key <$> event_keyboard_keycode p)
 
 
 instance HasType      KeyEvent where evType      = evType      . kSuper'
@@ -253,16 +253,16 @@ instance HasKey       KeyEvent where evKey       = kKey'
 
 data KeyCharEvent = EvKeyChar
   { kcSuper'      :: {-# UNPACK #-} !KeyEvent
-  , evKeyChar     :: Maybe Char
-  , evKeyMod      :: KeyMod
-  , evKeyRepeated :: Bool
+  , evKeyChar     :: !(Maybe Char)
+  , evKeyMod      :: !KeyMod
+  , evKeyRepeated :: !Bool
   }
 
 instance ParseEvent KeyCharEvent where
-  eventDetails p = EvKeyChar <$> eventDetails p
-                             <*> parseChar
-                             <*> (KM <$> event_keyboard_modifiers p)
-                             <*> event_keyboard_repeat p
+  eventDetails q p = EvKeyChar <$> eventDetails q p
+                               <*> parseChar
+                               <*> (KM <$> event_keyboard_modifiers p)
+                               <*> event_keyboard_repeat p
 
     where parseChar = do x <- event_keyboard_unichar p
                          return $ do guard (x > 0)
