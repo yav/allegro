@@ -15,6 +15,7 @@ library
                        Allegro.Display,
                        Allegro.DisplayMode,
                        Allegro.EventQueue,
+                       Allegro.Graphics,
                        Allegro.Font,
                        Allegro.Keyboard,
                        Allegro.Mouse,
@@ -31,9 +32,10 @@ library
                        Allegro.C.EventQueue,
                        Allegro.C.Event,
                        Allegro.C.Font,
-                       Allegro.C.Timer
-                       Allegro.C.Image
-                       Allegro.C.Audio
+                       Allegro.C.Timer,
+                       Allegro.C.Image,
+                       Allegro.C.Audio,
+                       Allegro.C.Graphics
   build-depends:       base >=4.6
   hs-source-dirs:      src
   c-sources:           cbits/wrappers.c

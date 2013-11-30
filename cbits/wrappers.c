@@ -9,7 +9,7 @@ void shal_uninstall_mouse(void *p) {
   al_uninstall_mouse();
 }
 
-void hsal_clear_to_color(float r, float g, float b, float a) {
+void shal_clear_to_color(float r, float g, float b, float a) {
   al_clear_to_color(al_map_rgba_f(r,g,b,a));
 }
 
