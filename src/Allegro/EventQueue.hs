@@ -1,5 +1,5 @@
 {-# LANGUAGE DeriveDataTypeable #-}
-module Allegro.Event
+module Allegro.EventQueue
   (
     -- * Event Queues
     EventQueue

@@ -14,7 +14,7 @@ library
   exposed-modules:     Allegro,
                        Allegro.Display,
                        Allegro.DisplayMode,
-                       Allegro.Event,
+                       Allegro.EventQueue,
                        Allegro.Font,
                        Allegro.Keyboard,
                        Allegro.Mouse,
