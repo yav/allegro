@@ -1,12 +1,15 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE RecordWildCards #-}
 module Allegro.Graphics
-  ( -- * Operations
-    Bitmap
-  , loadBitmap
-  , drawBitmap
+  ( -- * Drawing
+    drawBitmap
   , clearToColor
   , Flip(..)
+    -- * Bitmaps
+  , Bitmap
+  , loadBitmap
+  , bitmapWidth
+  , bitmapHeight
     -- * Exceptions
   , FailedToLoadBitmap(..)
   ) where
@@ -19,6 +22,7 @@ import           Control.Monad(when)
 import           Foreign.C.String(withCString)
 import           Foreign (nullPtr, newForeignPtr)
 import           Data.Typeable(Typeable)
+import           System.IO.Unsafe(unsafeDupablePerformIO)
 
 loadBitmap :: FilePath -> IO Bitmap
 loadBitmap path =
@@ -43,6 +47,17 @@ drawBitmap b x y fl = withBitmapPtr b $ \ptr ->
             Just FlipHorizontal -> flip_horizontal
             Just FlipVertical   -> flip_vertical
 
+-- This is pure because we do not provide any operations for
+-- resizing a bitmap.
+bitmapWidth :: Bitmap -> Int
+bitmapWidth b = fromIntegral
+              $ unsafeDupablePerformIO
+              $ withBitmapPtr b al_get_bitmap_width
+
+bitmapHeight :: Bitmap -> Int
+bitmapHeight b = fromIntegral
+               $ unsafeDupablePerformIO
+               $ withBitmapPtr b al_get_bitmap_height
 
 --------------------------------------------------------------------------------
 

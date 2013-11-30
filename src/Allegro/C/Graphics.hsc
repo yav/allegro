@@ -26,4 +26,9 @@ flip_vertical = #{const ALLEGRO_FLIP_VERTICAL}
 foreign import ccall "shal_clear_to_color"
   shal_clear_to_color :: CFloat -> CFloat -> CFloat -> CFloat -> IO ()
 
+foreign import ccall unsafe "al_get_bitmap_width"
+  al_get_bitmap_width :: Ptr BITMAP -> IO CInt
+
+foreign import ccall unsafe "al_get_bitmap_height"
+  al_get_bitmap_height :: Ptr BITMAP -> IO CInt
 
