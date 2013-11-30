@@ -3,15 +3,11 @@ module Allegro
   ( -- * Initialization
     allegro
 
-  -- * Colors
-  , Color(..)
-
   -- * Exceptions
   , FailedToInitialize(..)
   , FailedToInitializeFonts(..)
   ) where
 
-import Allegro.Types (Color(..))
 import Allegro.C
 import Allegro.C.Font
 import Allegro.C.Image

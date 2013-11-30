@@ -3,8 +3,9 @@
 module Allegro.Graphics
   ( -- * Drawing
     drawBitmap
-  , clearToColor
   , Flip(..)
+  , clearToColor
+  , Color(..)
     -- * Bitmaps
   , Bitmap
   , loadBitmap
