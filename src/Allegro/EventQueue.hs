@@ -3,10 +3,10 @@ module Allegro.EventQueue
   (
     -- * Event Queues
     EventQueue
-  , createEventQueue
-  , registerEventSource
-  , waitForEvent
-  , unregisterEventSource
+  , create
+  , register
+  , wait
+  , unregister
   , EventSource
 
     -- * Events
@@ -41,24 +41,24 @@ data FailedToCreateEventQueue = FailedToCreateEventQueue
 
 instance X.Exception FailedToCreateEventQueue
 
-createEventQueue :: IO EventQueue
-createEventQueue =
+create :: IO EventQueue
+create =
   do p <- al_create_event_queue
      when (p == nullPtr) $ X.throwIO FailedToCreateEventQueue
      fp <- newForeignPtr al_destroy_event_queue_addr p
      clients <- newIORef []
      return EventQueue { eqPtr = fp, eqReg = clients }
 
-registerEventSource :: EventSource t => EventQueue -> t -> IO ()
-registerEventSource q x =
+register :: EventSource t => EventQueue -> t -> IO ()
+register q x =
   do s <- eventSource x
      case foreignClient x of
        Just fp -> atomicModifyIORef (eqReg q) $ \as -> (fp : as, ())
        Nothing -> return ()
      withQ q $ \qp -> al_register_event_source qp s
 
-unregisterEventSource :: EventSource t => EventQueue -> t -> IO ()
-unregisterEventSource q x =
+unregister :: EventSource t => EventQueue -> t -> IO ()
+unregister q x =
   do s <- eventSource x
      withQ q $ \qp -> al_unregister_event_source qp s
      case foreignClient x of
@@ -71,8 +71,8 @@ unregisterEventSource q x =
   rm v (a : as) k           = rm v as $ \bs -> k (a : bs)
 
 
-waitForEvent :: EventQueue -> IO Event
-waitForEvent q =
+wait :: EventQueue -> IO Event
+wait q =
   allocaBytes event_size_bytes $ \evPtr ->
     do withQ q $ \qp -> al_wait_for_event qp evPtr
        parseEvent q evPtr

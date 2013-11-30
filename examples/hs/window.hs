@@ -1,7 +1,6 @@
-{-# LANGUAGE ViewPatterns #-}
 import Allegro
 import Allegro.Display
-import Allegro.Event
+import Allegro.EventQueue as EventQueue
 import Allegro.Keyboard as Keyboard
 
 
@@ -12,12 +11,13 @@ main :: IO ()
 main =
   allegro $
   withDisplay FixedWindow 800 600 $ \d ->
-  do q <- createEventQueue
-     registerEventSource q =<< Keyboard.create
-     let go = do ev <- waitForEvent q
+  do q <- EventQueue.create
+     EventQueue.register q =<< Keyboard.create
+     let go = do ev <- EventQueue.wait q
                  print $ evType ev
                  case ev of
-                   KeyDown (evKey -> k) | k == key_ESCAPE -> return ()
+                   KeyDown k
+                     | evKey k == key_ESCAPE -> return ()
                    _ -> go
      go
 

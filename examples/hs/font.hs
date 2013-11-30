@@ -1,7 +1,6 @@
-{-# LANGUAGE ViewPatterns #-}
 import Allegro
 import Allegro.Display
-import Allegro.Event
+import Allegro.EventQueue as EventQueue
 import Allegro.Font as Font
 import Allegro.Keyboard as Keyboard
 
@@ -20,17 +19,18 @@ main =
                       , "ascent = " ++ show (ascent f)
                       , "descent = " ++ show (descent f)
                       ]
-     q <- createEventQueue
-     registerEventSource q =<< Keyboard.create
+     q <- EventQueue.create
+     EventQueue.register q =<< Keyboard.create
      let go n =
-          do ev <- waitForEvent q
+          do ev <- EventQueue.wait q
              drawText f red (fromIntegral (div n 20 * 2 * textWidth f "m"))
                             (fromIntegral $ mod n 20 * Font.lineHeight f)
                             AlignLeft $ show $ evType ev
              flipDisplay
              print $ evType ev
              case ev of
-               KeyDown (evKey -> k) | k == key_ESCAPE -> return ()
+               KeyDown k
+                 | evKey k == key_ESCAPE -> return ()
                _ -> go (n + 1)
      go 0
 
