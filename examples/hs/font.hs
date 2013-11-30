@@ -1,6 +1,5 @@
 {-# LANGUAGE ViewPatterns #-}
 import Allegro
-import Allegro.Types
 import Allegro.Display
 import Allegro.Event
 import Allegro.Font as Font
@@ -16,13 +15,13 @@ main =
   allegro $
   withDisplay FixedWindow 640 480 $ \d ->
   do setWindowTitle d "Hello"
-     f <- loadFont "../resources/font.ttf" 12 Font.defaultFlags
+     f <- Font.load "../resources/font.ttf" 12 Font.defaultFlags
      putStr $ unlines [ "lineHeight = " ++ show (lineHeight f)
                       , "ascent = " ++ show (ascent f)
                       , "descent = " ++ show (descent f)
                       ]
      q <- createEventQueue
-     registerEventSource q =<< createKeyboard
+     registerEventSource q =<< Keyboard.create
      let go n =
           do ev <- waitForEvent q
              drawText f red (fromIntegral (div n 20 * 2 * textWidth f "m"))
@@ -31,7 +30,7 @@ main =
              flipDisplay
              print $ evType ev
              case ev of
-               KeyDown (evKey -> key_ESCAPE) -> return ()
+               KeyDown (evKey -> k) | k == key_ESCAPE -> return ()
                _ -> go (n + 1)
      go 0
 

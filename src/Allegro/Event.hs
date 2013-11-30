@@ -149,7 +149,50 @@ data Event  = DisplayClose     {-# UNPACK #-} !DisplayEvent
             | Unknown          {-# UNPACK #-} !SomeEvent
 
 
+instance HasType Event where
+  evType ev =
+    case ev of
+      DisplayClose     x -> evType x
+      DisplaySwitchIn  x -> evType x
+      DisplaySwitchOut x -> evType x
 
+      KeyUp            x -> evType x
+      KeyDown          x -> evType x
+      KeyChar          x -> evType x
+
+      MouseEnter       x -> evType x
+      MouseLeave       x -> evType x
+      MouseMove        x -> evType x
+      MouseWarp        x -> evType x
+      MouseButtonDown  x -> evType x
+      MouseButtonUp    x -> evType x
+
+      Time             x -> evType x
+
+      Unknown          x -> evType x
+
+
+instance HasTimestamp Event where
+  evTimestamp ev =
+    case ev of
+      DisplayClose     x -> evTimestamp x
+      DisplaySwitchIn  x -> evTimestamp x
+      DisplaySwitchOut x -> evTimestamp x
+
+      KeyUp            x -> evTimestamp x
+      KeyDown          x -> evTimestamp x
+      KeyChar          x -> evTimestamp x
+
+      MouseEnter       x -> evTimestamp x
+      MouseLeave       x -> evTimestamp x
+      MouseMove        x -> evTimestamp x
+      MouseWarp        x -> evTimestamp x
+      MouseButtonDown  x -> evTimestamp x
+      MouseButtonUp    x -> evTimestamp x
+
+      Time             x -> evTimestamp x
+
+      Unknown          x -> evTimestamp x
 
 
 

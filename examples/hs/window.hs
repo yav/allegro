@@ -13,11 +13,11 @@ main =
   allegro $
   withDisplay FixedWindow 800 600 $ \d ->
   do q <- createEventQueue
-     registerEventSource q =<< createKeyboard
+     registerEventSource q =<< Keyboard.create
      let go = do ev <- waitForEvent q
                  print $ evType ev
                  case ev of
-                   KeyDown (evKey -> key_ESCAPE) -> return ()
+                   KeyDown (evKey -> k) | k == key_ESCAPE -> return ()
                    _ -> go
      go
 
