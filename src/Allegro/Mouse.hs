@@ -4,7 +4,7 @@ module Allegro.Mouse
     create
   , Mouse
 
-    -- ** Events
+    -- * Events
   , MouseEvent
   , HasMouseAxis(..)
 

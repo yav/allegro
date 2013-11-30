@@ -13,7 +13,7 @@ module Allegro.Display
   -- * Working with the current display
   , flipDisplay
 
-  -- ** Events
+  -- * Events
   , DisplayEvent
   , HasDisplay(..)
 
