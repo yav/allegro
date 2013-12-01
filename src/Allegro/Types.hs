@@ -7,6 +7,7 @@ import Control.Applicative ( (<$>), (<*>) )
 import Data.IORef (IORef)
 import Foreign  ( Ptr, ForeignPtr, withForeignPtr )
 
+type Point = (Float,Float)
 
 --------------------------------------------------------------------------------
 

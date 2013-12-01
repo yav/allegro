@@ -14,9 +14,6 @@ foreign import ccall unsafe "al_load_bitmap"
 foreign import ccall unsafe "&al_destroy_bitmap"
   al_destroy_bitmap :: FunPtr (Ptr BITMAP -> IO ())
 
-foreign import ccall unsafe "al_draw_bitmap"
-  al_draw_bitmap :: Ptr BITMAP -> CFloat -> CFloat -> CInt -> IO ()
-
 flip_horizontal :: CInt
 flip_horizontal = #{const ALLEGRO_FLIP_HORIZONTAL}
 
@@ -31,4 +28,76 @@ foreign import ccall unsafe "al_get_bitmap_width"
 
 foreign import ccall unsafe "al_get_bitmap_height"
   al_get_bitmap_height :: Ptr BITMAP -> IO CInt
+
+
+
+foreign import ccall unsafe "al_draw_bitmap"
+  al_draw_bitmap :: Ptr BITMAP -> CFloat -> CFloat -> CInt -> IO ()
+
+foreign import ccall unsafe "al_draw_rotated_bitmap"
+  al_draw_rotated_bitmap :: Ptr BITMAP ->
+    CFloat -> CFloat -> CFloat -> CFloat -> CFloat
+    -> CInt -> IO ()
+
+foreign import ccall unsafe "al_draw_scaled_bitmap"
+  al_draw_scaled_bitmap :: Ptr BITMAP ->
+    CFloat -> CFloat -> CFloat -> CFloat -> CFloat -> CFloat -> CFloat -> CFloat
+    -> CInt -> IO ()
+
+foreign import ccall unsafe "al_draw_scaled_rotated_bitmap"
+  al_draw_scaled_rotated_bitmap :: Ptr BITMAP ->
+    CFloat -> CFloat -> CFloat -> CFloat -> CFloat -> CFloat -> CFloat
+    -> CInt -> IO ()
+
+foreign import ccall unsafe "al_draw_bitmap_region"
+  al_draw_bitmap_region :: Ptr BITMAP ->
+    CFloat -> CFloat -> CFloat -> CFloat -> CFloat -> CFloat
+    -> CInt -> IO ()
+
+foreign import ccall unsafe "shal_draw_tinted_bitmap"
+  shal_draw_tinted_bitmap :: Ptr BITMAP ->
+  CFloat -> CFloat -> CFloat -> CFloat ->
+  CFloat -> CFloat ->
+  CInt -> IO ()
+
+foreign import ccall unsafe "shal_draw_tinted_scaled_bitmap"
+  shal_draw_tinted_scaled_bitmap :: Ptr BITMAP ->
+  CFloat -> CFloat -> CFloat -> CFloat ->
+  CFloat -> CFloat -> CFloat -> CFloat ->
+  CFloat -> CFloat -> CFloat -> CFloat ->
+  CInt -> IO ()
+
+foreign import ccall unsafe "shal_draw_tinted_scaled_rotated_bitmap"
+  shal_draw_tinted_scaled_rotated_bitmap :: Ptr BITMAP ->
+   CFloat -> CFloat -> CFloat -> CFloat ->
+   CFloat -> CFloat -> CFloat -> CFloat ->
+   CFloat -> CFloat ->
+   CFloat ->
+   CInt -> IO ()
+
+foreign import ccall unsafe "shal_draw_tinted_bitmap_region"
+  shal_draw_tinted_bitmap_region :: Ptr BITMAP ->
+  CFloat -> CFloat -> CFloat -> CFloat ->
+  CFloat -> CFloat -> CFloat -> CFloat ->
+  CFloat -> CFloat ->
+  CInt -> IO ()
+
+foreign import ccall unsafe "shal_draw_tinted_rotated_bitmap"
+  shal_draw_tinted_rotated_bitmap :: Ptr BITMAP ->
+  CFloat -> CFloat -> CFloat -> CFloat ->
+  CFloat -> CFloat ->
+  CFloat -> CFloat ->
+  CFloat ->
+  CInt -> IO ()
+
+foreign import ccall unsafe "shal_draw_tinted_scaled_rotated_bitmap_region"
+  shal_draw_tinted_scaled_rotated_bitmap_region :: Ptr BITMAP ->
+  CFloat -> CFloat -> CFloat -> CFloat ->
+  CFloat -> CFloat -> CFloat -> CFloat ->
+  CFloat -> CFloat -> CFloat -> CFloat ->
+  CFloat -> CFloat -> CFloat ->
+  CInt -> IO ()
+
+
+
 
