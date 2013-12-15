@@ -5,7 +5,7 @@ module Allegro.Graphics
   ( -- * Drawing
     drawBitmap
   , drawModifiedBitmap
-  , DrawOptions
+  , BitmapDrawOptions
   , normal
   , flipped
   , DrawFlipped(..)
@@ -50,7 +50,7 @@ clearToColor Color { .. } = shal_clear_to_color (realToFrac cRed)
 
 data DrawFlipped = FlipHorizontal | FlipVertical
 
-data DrawOptions = DrawOptions
+data BitmapDrawOptions = BitmapDrawOptions
   { drawFlipped :: Maybe DrawFlipped
   , drawRotated :: Maybe (CFloat, CFloat, CFloat)
   , drawScaled  :: Maybe (CFloat, CFloat)
@@ -58,30 +58,30 @@ data DrawOptions = DrawOptions
   , drawRegion  :: Maybe (CFloat, CFloat, CFloat, CFloat)
   }
 
-normal :: DrawOptions
-normal = DrawOptions { drawFlipped = Nothing
-                     , drawRotated = Nothing
-                     , drawScaled  = Nothing
-                     , drawTinted  = Nothing
-                     , drawRegion  = Nothing
-                     }
+normal :: BitmapDrawOptions
+normal = BitmapDrawOptions { drawFlipped = Nothing
+                           , drawRotated = Nothing
+                           , drawScaled  = Nothing
+                           , drawTinted  = Nothing
+                           , drawRegion  = Nothing
+                           }
 
-flipped :: DrawFlipped -> DrawOptions -> DrawOptions
+flipped :: DrawFlipped -> BitmapDrawOptions -> BitmapDrawOptions
 flipped x y = y { drawFlipped = Just x }
 
 rotated :: Point    -- ^ Rotate around this point.  (0,0) is top-left.
         -> Float    -- ^ Rotate clock-wise, in radians.
-        -> DrawOptions -> DrawOptions
+        -> BitmapDrawOptions -> BitmapDrawOptions
 rotated (x,y) r o = o { drawRotated = Just ( realToFrac x
                                            , realToFrac y
                                            , realToFrac r) }
 
 scaled :: Float     -- ^ Horizontal scaling
        -> Float     -- ^ Vertical scaling
-       -> DrawOptions -> DrawOptions
+       -> BitmapDrawOptions -> BitmapDrawOptions
 scaled x y o = o { drawScaled = Just (realToFrac x, realToFrac y) }
 
-tinted :: Color -> DrawOptions -> DrawOptions
+tinted :: Color -> BitmapDrawOptions -> BitmapDrawOptions
 tinted Color { .. } o = o { drawTinted = Just ( realToFrac cRed
                                               , realToFrac cGreen
                                               , realToFrac cBlue
@@ -91,15 +91,15 @@ tinted Color { .. } o = o { drawTinted = Just ( realToFrac cRed
 region :: Point   -- ^ Top-left corener of the region
        -> Float   -- ^ Region width
        -> Float   -- ^ Region height
-       -> DrawOptions -> DrawOptions
+       -> BitmapDrawOptions -> BitmapDrawOptions
 region (x,y) w h o = o { drawRegion = Just ( realToFrac x
                                            , realToFrac y
                                            , realToFrac w
                                            , realToFrac h
                                            ) }
 
-drawModifiedBitmap :: Bitmap -> Float -> Float -> DrawOptions -> IO ()
-drawModifiedBitmap bm x y DrawOptions { .. } =
+drawModifiedBitmap :: Bitmap -> Float -> Float -> BitmapDrawOptions -> IO ()
+drawModifiedBitmap bm x y BitmapDrawOptions { .. } =
   withBitmapPtr bm $ \p ->
   case (drawTinted, drawRotated, drawScaled, drawRegion) of
     ( Nothing

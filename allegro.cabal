@@ -19,9 +19,9 @@ library
                        Allegro.Font,
                        Allegro.Keyboard,
                        Allegro.Mouse,
+                       Allegro.Primitives,
                        Allegro.Timer
-  other-modules:
-                       Allegro.Types,
+  other-modules:       Allegro.Types,
                        Allegro.C,
                        Allegro.C.Types,
                        Allegro.C.Display,
@@ -35,8 +35,9 @@ library
                        Allegro.C.Timer,
                        Allegro.C.Image,
                        Allegro.C.Audio,
-                       Allegro.C.Graphics
-  build-depends:       base >=4.6
+                       Allegro.C.Graphics,
+                       Allegro.C.Primitives
+  build-depends:       base >=4.6, array
   hs-source-dirs:      src
   c-sources:           cbits/wrappers.c,
                        cbits/color_wrappers.c
