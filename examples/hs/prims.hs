@@ -9,8 +9,11 @@ import Data.Array
 red = Color 1 0 0 1
 green = Color 0 1 0 1
 
+mark (x,y) = drawRectangle (x-2,y-2) (x+2,y+2) red Filled
 
-test (p1 : p2 : more) = drawLine p1 p2 green 0 >> test (p2 : more)
+test (p1 : p2 : more) = do mark p1
+                           drawLine p1 p2 green 0
+                           test (p2 : more)
 test _ = return ()
 
 
@@ -30,10 +33,10 @@ main =
        drawRoundedRectangle (120,200) (220,300) (20,10) green Filled
        -}
 
-       ps <- calculateSpline (0,0) (50,100) (100,50) (150,100) 10 1000
-       print (length (elems ps))
+       let ps = calculateSpline (0,0) (50,100) (100,50) (150,100)
+       let ps = calculateArc (100,100) (20,50) (pi/2) (pi/2) 5
+       -- drawRibbon (listArray (0,4) [ (0,0), (100,100), (150,50), (200,100), (0,0) ]) red 5
        test (elems ps)
-
 
        flipDisplay
        let go = do ev <- waitForEvent q

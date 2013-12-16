@@ -1,24 +1,31 @@
 {-# LANGUAGE RecordWildCards #-}
 module Allegro.Primitives
-  ( drawLine
+  ( -- * Drawing
+    drawLine
   , DrawOptions(..)
   , drawTriangle
   , drawRectangle
   , drawRoundedRectangle
+  , drawRibbon
+
+  -- * Calculation
   , calculateSpline
+  , calculateArc
   ) where
 
 import Allegro.Types (Point, Color(..))
 import Allegro.C.Primitives
 
-import Foreign(allocaArray,pokeElemOff,peek,peekElemOff,sizeOf,advancePtr)
+import Foreign(allocaArray,pokeElemOff,peek,peekElemOff,pokeElemOff,
+               sizeOf,advancePtr)
 import Foreign.Ptr(Ptr)
 import Foreign.C(CFloat,CInt)
 import GHC.IOArray(unsafeWriteIOArray)
 import Data.Array.Unsafe(unsafeFreeze)
-import Data.Array(Array)
+import Data.Array(Array,bounds,rangeSize,assocs)
 import Data.Array.MArray(newArray_)
 import Data.Array.IO(IOArray)
+import System.IO.Unsafe(unsafeDupablePerformIO)
 
 drawLine :: Point -> Point
          -> Color
@@ -79,15 +86,36 @@ drawRoundedRectangle (x1,y1) (x2,y2) (rx,ry) Color { .. } how =
                         (f rx) (f ry)
                         (f cRed) (f cGreen) (f cBlue) (f cAlpha)
 
+drawRibbon :: Array Int Point
+           -> Color
+           -> Float   -- ^ Thickness
+           -> IO ()
+drawRibbon pts Color { .. } thick =
+  withPoints pts $ \inp ->
+    shal_draw_ribbon inp pointStride
+      (f cRed) (f cGreen) (f cBlue) (f cAlpha) (f thick) (i seg)
+
+  where
+  seg = rangeSize (bounds pts)
+
+
+
+--------------------------------------------------------------------------------
+
+calculation :: Int -> (Ptr CFloat -> IO ()) -> Array Int Point
+calculation n calc =
+  unsafeDupablePerformIO $
+  allocaArray (2 * n) $ \out ->
+  do calc out
+     mkPoints 0 n out =<< newArray_ (0,n-1)
 
 
 
 calculateSpline :: Point -> Point -> Point -> Point
-                -> Float -- ^ Thickness, 0 for hairline.
                 -> Int   -- ^ Number of segments
-                -> IO (Array Int Point)
-calculateSpline (x1,y1) (x2,y2) (x3,y3) (x4,y4) thick n =
-  allocaArray (2 * out_elems) $ \out ->
+                -> Array Int Point
+calculateSpline (x1,y1) (x2,y2) (x3,y3) (x4,y4) n =
+  calculation n $ \outPtr ->
   allocaArray 8 $ \inp ->
     do pokeElemOff inp 0 (f x1)
        pokeElemOff inp 1 (f y1)
@@ -97,13 +125,32 @@ calculateSpline (x1,y1) (x2,y2) (x3,y3) (x4,y4) thick n =
        pokeElemOff inp 5 (f y3)
        pokeElemOff inp 6 (f x4)
        pokeElemOff inp 7 (f y4)
-       let stride = i (2 * sizeOf (undefined :: CFloat))
-       al_calculate_spline out stride inp cThick (i n)
-       arr <- newArray_ (0,out_elems-1)
-       mkPoints 0 out_elems out arr
+       al_calculate_spline outPtr pointStride inp 0 (i n)
+
+calculateArc :: Point
+             -> (Float,Float) -- ^ Arc radii
+             -> Float         -- ^ Starting angle, in radians
+             -> Float         -- ^ Angular span
+             -> Int           -- ^ Number of segments
+             -> Array Int Point
+calculateArc (x,y) (rx,ry) theta delta segments =
+  calculation segments $ \outPtr ->
+    al_calculate_arc outPtr pointStride
+        (f x) (f y)
+        (f rx) (f ry)
+        (f theta) (f delta)
+        0 (i segments)
+
+withPoints :: Array Int Point -> (Ptr CFloat -> IO ()) -> IO ()
+withPoints pts k =
+  allocaArray (2 * rangeSize bs) $ \buf ->
+      do mapM_ (upd buf) (assocs pts)
+         k buf
   where
-  cThick     = f thick
-  out_elems  = if cThick <= 0 then n else 2 * n
+  bs@(start,_) = bounds pts
+  upd ptr (pos,(x,y)) = do let p = 2 * (pos - start)
+                           pokeElemOff ptr p       (f x)
+                           pokeElemOff ptr (p + 1) (f y)
 
 mkPoints :: Int -> Int -> Ptr CFloat -> IOArray Int Point ->
             IO (Array Int Point)
@@ -114,6 +161,10 @@ mkPoints pos num ptr arr
                    mkPoints (pos + 1) num (advancePtr ptr 2) arr
 mkPoints _ _ _ arr = unsafeFreeze arr
 
+pointStride :: CInt
+pointStride = i (2 * sizeOf (undefined :: CFloat))
+
+--------------------------------------------------------------------------------
 
 f :: Float -> CFloat
 f = realToFrac

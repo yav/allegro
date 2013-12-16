@@ -13,6 +13,7 @@ $(BUILD)/%: %.c
           -lallegro_ttf \
           -lallegro_audio \
           -lallegro_acodec \
+          -lallegro_primitives \
           -lm
 
 .PHONY: clean

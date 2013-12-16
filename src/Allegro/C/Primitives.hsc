@@ -60,6 +60,25 @@ foreign import ccall unsafe "al_calculate_spline"
   al_calculate_spline ::
     Ptr CFloat -> CInt -> Ptr CFloat -> CFloat -> CInt -> IO ()
 
+foreign import ccall unsafe "al_calculate_arc"
+  al_calculate_arc ::
+    Ptr CFloat -> CInt ->
+    CFloat -> CFloat ->
+    CFloat -> CFloat ->
+    CFloat -> CFloat ->
+    CFloat ->
+    CInt -> IO ()
+
+foreign import ccall unsafe "al_calculate_ribbon"
+  al_calculate_ribbon ::
+    Ptr CFloat -> CInt ->
+    Ptr CFloat -> CInt ->
+    CFloat -> CInt -> IO ()
 
 
+foreign import ccall unsafe "shal_draw_ribbon"
+  shal_draw_ribbon ::
+    Ptr CFloat -> CInt ->
+    CFloat -> CFloat -> CFloat -> CFloat ->
+    CFloat -> CInt -> IO ()
 
