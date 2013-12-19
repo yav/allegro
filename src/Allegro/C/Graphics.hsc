@@ -8,6 +8,18 @@ import Foreign.C.String(CString)
 
 #include <allegro5/allegro.h>
 
+foreign import ccall unsafe "al_set_target_bitmap"
+  al_set_target_bitmap :: Ptr BITMAP -> IO ()
+
+foreign import ccall unsafe "al_set_target_backbuffer"
+  al_set_target_backbuffer :: Ptr DISPLAY -> IO ()
+
+foreign import ccall unsafe "al_get_current_display"
+  al_get_current_display :: IO (Ptr DISPLAY)
+
+foreign import ccall unsafe "al_create_bitmap"
+  al_create_bitmap :: CInt -> CInt -> IO (Ptr BITMAP)
+
 foreign import ccall unsafe "al_load_bitmap"
   al_load_bitmap :: CString -> IO (Ptr BITMAP)
 

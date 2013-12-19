@@ -19,10 +19,13 @@ module Allegro.Graphics
     -- * Bitmaps
   , Bitmap
   , loadBitmap
+  , createBitmap
+  , onBitmap
   , bitmapWidth
   , bitmapHeight
     -- * Exceptions
   , FailedToLoadBitmap(..)
+  , FailedToCretaeBitmap(..)
   ) where
 
 import           Allegro.Types
@@ -35,6 +38,20 @@ import           Foreign.C.String(withCString)
 import           Foreign (nullPtr, newForeignPtr)
 import           Data.Typeable(Typeable)
 import           System.IO.Unsafe(unsafeDupablePerformIO)
+
+createBitmap :: Int -> Int -> IO Bitmap
+createBitmap w h =
+  do ptr <- al_create_bitmap (fromIntegral w) (fromIntegral h)
+     when (ptr == nullPtr) $ X.throwIO $ FailedToCretaeBitmap
+     Bitmap `fmap` newForeignPtr al_destroy_bitmap ptr
+
+-- | All drawing in the provided IO action will be done on the bitmap,
+-- instead of the current display.
+onBitmap :: Bitmap -> IO () -> IO ()
+onBitmap b m =
+  do d <- al_get_current_display
+     withBitmapPtr b $ \p ->
+        X.bracket_ (al_set_target_bitmap p) (al_set_target_backbuffer d) m
 
 loadBitmap :: FilePath -> IO Bitmap
 loadBitmap path =
@@ -243,3 +260,9 @@ data FailedToLoadBitmap = FailedToLoadBitmap FilePath
                           deriving (Show,Typeable)
 
 instance X.Exception FailedToLoadBitmap
+
+
+data FailedToCretaeBitmap = FailedToCretaeBitmap
+                            deriving (Show,Typeable)
+
+instance X.Exception FailedToCretaeBitmap
