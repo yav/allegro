@@ -20,7 +20,8 @@ library
                        Allegro.Keyboard,
                        Allegro.Mouse,
                        Allegro.Primitives,
-                       Allegro.Timer
+                       Allegro.Timer,
+                       Allegro.Transform
   other-modules:       Allegro.Types,
                        Allegro.C,
                        Allegro.C.Types,
@@ -36,7 +37,8 @@ library
                        Allegro.C.Image,
                        Allegro.C.Audio,
                        Allegro.C.Graphics,
-                       Allegro.C.Primitives
+                       Allegro.C.Primitives,
+                       Allegro.C.Transform
   build-depends:       base >=4.6, array
   hs-source-dirs:      src
   c-sources:           cbits/wrappers.c,
