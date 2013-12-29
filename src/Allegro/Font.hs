@@ -54,9 +54,15 @@ defaultFontFlags = FontFlags { noKerning = False
 
 loadFont :: FilePath
          -> Int     -- ^ Font size
-         -> FontFlags
          -> IO Font
-loadFont file sz FontFlags { .. } =
+loadFont file size = loadFontWithFlags file size defaultFontFlags
+
+loadFontWithFlags
+  :: FilePath
+  -> Int     -- ^ Font size
+  -> FontFlags
+  -> IO Font
+loadFontWithFlags file sz FontFlags { .. } =
   do ptr <- withCString file $ \f -> al_load_font f (fromIntegral sz) fs
      when (ptr == nullPtr) $ X.throwIO (FailedToLoadFont file)
      Font `fmap` newForeignPtr al_destroy_font_addr ptr
@@ -115,8 +121,8 @@ alignFlags al = case al of
                   AlignCenter -> align_center
                   AlignRight  -> align_right
 
-drawText :: Font -> Color -> Float -> Float -> Alignment -> String -> IO ()
-drawText font Color { .. } x y al txt =
+drawText :: Font -> Color -> Point -> Alignment -> String -> IO ()
+drawText font Color { .. } (x,y) al txt =
   withCString txt $ \sp ->
   withFontPtr font $ \fp -> shal_draw_text fp (realToFrac cRed)
                                          (realToFrac cGreen)
@@ -129,14 +135,13 @@ drawText font Color { .. } x y al txt =
 
 drawJustifiedText :: Font       -- ^ use this font
                   -> Color      -- ^ text should have this color
-                  -> Float      -- ^ left text boundary
+                  -> Point      -- ^ position
                   -> Float      -- ^ right text boundary
-                  -> Float      -- ^ vertical text position
                   -> Float      -- ^ maximum space between words
                   -> Alignment  -- ^ text alignement within boundary
                   -> String     -- ^ text to draw
                   -> IO ()
-drawJustifiedText font Color { .. } x1 x2 y diff al txt =
+drawJustifiedText font Color { .. } (x1,y) x2 diff al txt =
   withCString txt $ \sp ->
   withFontPtr font $ \fp -> shal_draw_justified_text fp
                            (realToFrac cRed)
