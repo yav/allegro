@@ -10,10 +10,10 @@ import Foreign.C.Types
 al_init :: IO Bool
 al_init = al_install_system #{const ALLEGRO_VERSION_INT} fp_atexit
 
-foreign import ccall "al_install_system"
+foreign import ccall unsafe "al_install_system"
   al_install_system :: CInt -> FunPtr (Ptr () -> IO CInt) -> IO Bool
 
-foreign import ccall "&atexit"
+foreign import ccall unsafe "&atexit"
   fp_atexit :: FunPtr (Ptr () -> IO CInt)
 
 
