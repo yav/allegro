@@ -86,7 +86,7 @@ event_keyboard_unichar :: Ptr EVENT -> IO CInt
 event_keyboard_unichar = #{peek ALLEGRO_EVENT,keyboard.unichar}
 
 event_keyboard_modifiers :: Ptr EVENT -> IO CUInt
-event_keyboard_modifiers = #{peek ALLEGRO_EVENT,keyboard.unichar}
+event_keyboard_modifiers = #{peek ALLEGRO_EVENT,keyboard.modifiers}
 
 event_keyboard_repeat :: Ptr EVENT -> IO Bool
 event_keyboard_repeat = #{peek ALLEGRO_EVENT,keyboard.repeat}
