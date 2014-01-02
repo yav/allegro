@@ -1,8 +1,11 @@
+{-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE FlexibleInstances #-}
 module Allegro.Primitives
   ( -- * Drawing lines and curves
     DrawLine(..)
+  , Color(..)
+  , Point
 
   -- * Drawing shapes
   , DrawShape(..)

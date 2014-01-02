@@ -1,3 +1,4 @@
+{-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE RecordWildCards #-}
 module Allegro.Font
@@ -17,6 +18,8 @@ module Allegro.Font
 
   -- * Drawing with the font
   , drawText
+  , Color(..)
+  , Point
   , drawJustifiedText
   , Alignment(..)
 
