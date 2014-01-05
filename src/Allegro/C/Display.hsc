@@ -1,9 +1,10 @@
+{-# LANGUAGE Safe #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
 module Allegro.C.Display where
 
 import Allegro.C.Types (DISPLAY, EVENT_SOURCE, BITMAP)
 
-import Foreign (Ptr)
+import Foreign.Ptr (Ptr)
 import Foreign.C.Types(CInt(..))
 import Foreign.C.String (CString)
 

@@ -1,3 +1,4 @@
+{-# LANGUAGE Safe #-}
 module Allegro.Types where
 
 import Allegro.C.Types
@@ -5,7 +6,7 @@ import Allegro.C.Display
 import Allegro.C.Event
 import Control.Applicative ( (<$>), (<*>) )
 import Data.IORef (IORef)
-import Foreign  ( Ptr, ForeignPtr, withForeignPtr )
+import Foreign.Safe  ( Ptr, ForeignPtr, withForeignPtr )
 
 type Point = (Float,Float)
 

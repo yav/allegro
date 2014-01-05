@@ -1,9 +1,10 @@
+{-# LANGUAGE Safe #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
 module Allegro.C.Event where
 
 import Allegro.C.Types
 
-import Foreign
+import Foreign.Safe
 import Foreign.C.Types
 
 #include <allegro5/allegro.h>
