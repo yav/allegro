@@ -8,7 +8,8 @@ import Control.Applicative ( (<$>), (<*>) )
 import Data.IORef (IORef)
 import Foreign.Safe  ( Ptr, ForeignPtr, withForeignPtr )
 
-type Point = (Float,Float)
+type Point = (Float,Float)    -- ^ A position
+type Dim   = (Float,Float)    -- ^ width, height
 
 --------------------------------------------------------------------------------
 

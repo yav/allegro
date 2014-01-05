@@ -6,6 +6,7 @@ module Allegro.Primitives
     DrawLine(..)
   , Color(..)
   , Point
+  , Dim
 
   -- * Drawing shapes
   , DrawShape(..)
@@ -35,6 +36,7 @@ import Data.Array.Unsafe(unsafeFreeze)
 import Data.Array(Array,bounds,rangeSize,assocs,listArray)
 import Data.Array.MArray(newArray_)
 import Data.Array.IO(IOArray)
+
 import System.IO.Unsafe(unsafeDupablePerformIO)
 
 
