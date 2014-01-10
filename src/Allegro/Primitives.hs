@@ -18,13 +18,15 @@ module Allegro.Primitives
   , Spline(..)
   , Triangle(..)
   , Rectangle(..)
+  , rectangle
   , Circle(..)
+  , circle
 
   -- * Calculation
   , Calculate(..)
   ) where
 
-import Allegro.Types (Point, Color(..))
+import Allegro.Types (Point, Dim, Color(..))
 import Allegro.C.Primitives
 
 import Foreign(allocaArray,pokeElemOff,peek,peekElemOff,pokeElemOff,
@@ -125,10 +127,19 @@ data Rectangle  = Rectangle { rectTopLeft     :: Point
                               -- ^ Radii for curved corrners.
                             }
 
+rectangle :: Point -> Dim -> Rectangle
+rectangle (x,y) (w,h) = Rectangle { rectTopLeft = (x,y)
+                                  , rectBottomRight = (x + w, y + h)
+                                  , rectCurved = Nothing
+                                  }
+
 data Circle       = Circle { circCenter   :: Point
                            , circRadius   :: Float
                            , circRadiusY  :: Maybe Float -- ^ For ellipses
                            }
+
+circle :: Point -> Float -> Circle
+circle circCenter circRadius = Circle { circRadiusY = Nothing, .. }
 
 instance DrawShape Triangle where
   drawShape (Triangle (x1,y1) (x2,y2) (x3,y3)) Color { .. } how =
