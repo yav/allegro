@@ -708,21 +708,7 @@ void shal_clear_to_color(float color_r,
     color.a = color_a;
     return al_clear_to_color(color);
 }
-void sh_al_put_pixel(ALLEGRO_BITMAP * bitmap,
-                     int x,
-                     int y,
-                     float color_r,
-                     float color_g,
-                     float color_b,
-                     float color_a)
-{
-    ALLEGRO_COLOR color;
-    color.r = color_r;
-    color.g = color_g;
-    color.b = color_b;
-    color.a = color_a;
-    return _al_put_pixel(bitmap, x, y, color);
-}
+
 void shal_put_blended_pixel(int x,
                             int y,
                             float color_r,
