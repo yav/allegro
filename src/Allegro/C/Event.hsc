@@ -4,7 +4,7 @@ module Allegro.C.Event where
 
 import Allegro.C.Types
 
-import Foreign.Safe
+import Foreign
 import Foreign.C.Types
 
 #include <allegro5/allegro.h>

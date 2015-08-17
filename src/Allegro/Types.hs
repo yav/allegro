@@ -6,7 +6,7 @@ import Allegro.C.Display
 import Allegro.C.Event
 import Control.Applicative ( (<$>), (<*>) )
 import Data.IORef (IORef)
-import Foreign.Safe  ( Ptr, ForeignPtr, withForeignPtr )
+import Foreign( Ptr, ForeignPtr, withForeignPtr )
 
 type Point = (Float,Float)    -- ^ A position
 type Dim   = (Float,Float)    -- ^ width, height
