@@ -12,6 +12,7 @@ cabal-version:       >=1.6
 
 library
   exposed-modules:     Allegro,
+                       Allegro.Audio,
                        Allegro.Display,
                        Allegro.DisplayMode,
                        Allegro.EventQueue,
@@ -22,6 +23,7 @@ library
                        Allegro.Primitives,
                        Allegro.Timer,
                        Allegro.Transform
+                       Allegro.C.Audio
   other-modules:       Allegro.Types,
                        Allegro.C,
                        Allegro.C.Types,
@@ -35,7 +37,6 @@ library
                        Allegro.C.Font,
                        Allegro.C.Timer,
                        Allegro.C.Image,
-                       Allegro.C.Audio,
                        Allegro.C.Graphics,
                        Allegro.C.Primitives,
                        Allegro.C.Transform

@@ -17,3 +17,11 @@ data JOYSTICK_STATE
 data FONT
 data TRANSFORM
 
+
+data SAMPLE
+data SAMPLE_INSTANCE
+data SAIMPLE_ID
+data VOICE
+data AUDIO_STREAM
+data MIXER
+
