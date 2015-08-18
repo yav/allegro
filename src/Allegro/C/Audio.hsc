@@ -15,6 +15,9 @@ import Allegro.C.Types
 foreign import ccall unsafe "al_install_audio"
   al_install_audio :: IO Bool
 
+foreign import ccall unsafe "al_is_audio_installed"
+  al_is_audio_installed :: IO Bool
+
 foreign import ccall unsafe "al_uninstall_audio"
   al_uninstall_audio :: IO ()
 
@@ -231,8 +234,8 @@ foreign import ccall unsafe "al_set_mixer_playing"
 foreign import ccall unsafe "al_load_audio_stream"
   al_load_audio_stream :: CString -> CSize -> CUInt -> IO (Ptr AUDIO_STREAM)
 
-foreign import ccall unsafe "&al_destroy_audio_stream"
-  al_destroy_audio_stream_addr :: FunPtr (Ptr AUDIO_STREAM -> IO ())
+foreign import ccall unsafe "al_destroy_audio_stream"
+  al_destroy_audio_stream :: Ptr AUDIO_STREAM -> IO ()
 
 
 --------------------------------------------------------------------------------

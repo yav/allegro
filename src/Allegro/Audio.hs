@@ -1,16 +1,10 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 module Allegro.Audio
-  ( -- * Setup
-    withAudioAndCodecs
-  , withAudio
-  , installAudio
-  , uninstallAudio
-  , FailedToInstallAudio
-  , FailedToInitACodecAddon
-
+  (
   -- * Voices
-  , createVoice
+    createVoice
   , Voice
+  , destroyVoice
   , AudioDepth(..)
   , ChannelConf(..)
   , attachMixerToVoice
@@ -32,6 +26,7 @@ module Allegro.Audio
   -- * Mixers
   , createMixer
   , Mixer
+  , destroyMixer
   , attachSampleInstanceToMixer
   , attachAudioStreamToMixer
   , attachMixerToMixer
@@ -62,6 +57,7 @@ module Allegro.Audio
   -- * Sample Instances
   , createSampleInstance
   , SampleInstance
+  , destroySampleInstance
   , getSampleInstanceChannels
   , getSampleInstanceDepth
   , getSampleInstanceFrequency
@@ -95,11 +91,13 @@ module Allegro.Audio
 
   -- * Samples
   , loadSample
+  , destroySample
   , Sample
   , FailedToLoadSample(..)
 
   -- * Audio Streams
   , loadAudioStream
+  , destroyAudioStream
   , AudioStream
   , FailedToLoadAudioStream(..)
 
@@ -118,51 +116,14 @@ module Allegro.Audio
 import Allegro.C.Types
 import Allegro.C.Audio
 
-import Data.IORef
 import Data.Typeable(Typeable)
-import Control.Exception(Exception, throwIO, finally)
+import Control.Exception(Exception, throwIO)
 import Control.Monad(when, unless)
 
-import Foreign  ( Ptr, nullPtr
-                , ForeignPtr, newForeignPtr, withForeignPtr, FunPtr
-                )
+import Foreign  (Ptr, nullPtr)
 import Foreign.C.String(withCString)
 
 
--- | Throws 'FailedToInstallAudio'
-installAudio :: IO ()
-installAudio = chk FailedToInstallAudio al_install_audio
-
-data FailedToInstallAudio = FailedToInstallAudio
-  deriving (Typeable,Show)
-
-instance Exception FailedToInstallAudio
-
-uninstallAudio :: IO ()
-uninstallAudio = al_uninstall_audio
-
--- | Throws 'FailedToInitACodecAddon'
-initACodecAddon :: IO ()
-initACodecAddon = chk FailedToInitACodecAddon al_init_acodec_addon
-
-data FailedToInitACodecAddon =
-  FailedToInitACodecAddon
-  deriving (Typeable,Show)
-
-instance Exception FailedToInitACodecAddon
-
-
--- | Throws 'FailedToInstallAudio'
-withAudio :: IO a -> IO a
-withAudio m = do installAudio
-                 m `finally` uninstallAudio
-
--- | Throws 'FailedToInstallAudio', 'FailedToInitACodecAddon'
-withAudioAndCodecs :: IO a -> IO a
-withAudioAndCodecs m = withAudio (initACodecAddon >> m)
-
-
---------------------------------------------------------------------------------
 
 
 data AudioDepth = Int8
@@ -239,27 +200,33 @@ outChannelConf x =
     ChannelConf_7_1   -> channel_conf_7_1
 
 
-newtype Voice = Voice (ForeignPtr VOICE)
+
+chk :: Exception x => x -> IO Bool -> IO ()
+chk err b =
+  do x <- b
+     unless x (throwIO err)
+
+chkPtr :: Exception x => x -> IO (Ptr a) -> IO (Ptr a)
+chkPtr err b =
+  do x <- b
+     when (x == nullPtr) (throwIO err)
+     return x
+
+mkPtr :: Exception x => (Ptr a -> b) -> x -> IO (Ptr a) -> IO b
+mkPtr mk err creat = fmap mk (chkPtr err creat)
+
+
+newtype Voice = Voice (Ptr VOICE)
                       deriving (Eq,Ord,Show,Typeable)
 
-
-mkFP :: Exception x => (ForeignPtr a -> b) ->
-                      x -> IO (Ptr a) -> FunPtr (Ptr a -> IO ()) -> IO b
-mkFP mk err creat destr =
-  do ptr <- creat
-     when (ptr == nullPtr) (throwIO err)
-     v <- newForeignPtr destr ptr
-     return (mk v)
 
 
 -- | Throws 'FailedToCreateVoice'
 createVoice :: Word {- ^ Frequency -} -> AudioDepth -> ChannelConf -> IO Voice
 createVoice freq depth conf =
-  mkFP Voice (FailedToCreateVoice freq depth conf)
-             (al_create_voice (fromIntegral freq) (outAudioDepth depth)
-                                                  (outChannelConf conf))
-             al_destroy_voice_addr
-
+  mkPtr Voice (FailedToCreateVoice freq depth conf)
+      $ al_create_voice (fromIntegral freq) (outAudioDepth depth)
+                                            (outChannelConf conf)
 
 data FailedToCreateVoice = FailedToCreateVoice Word AudioDepth ChannelConf
                               deriving (Typeable,Show)
@@ -267,22 +234,15 @@ data FailedToCreateVoice = FailedToCreateVoice Word AudioDepth ChannelConf
 instance Exception FailedToCreateVoice
 
 
+destroyVoice :: Voice -> IO ()
+destroyVoice (Voice v) = al_destroy_voice v
 
-chk :: Exception x => x -> IO Bool -> IO ()
-chk err b =
-  do x <- b
-     unless x (throwIO err)
 
 
 -- | Throws 'FailedToAttachMixerToVoice'
 attachMixerToVoice :: Mixer -> Voice -> IO ()
-attachMixerToVoice m@(Mixer mfp p) v@(Voice vfp) =
-  withForeignPtr mfp $ \mp ->
-  withForeignPtr vfp $ \vp ->
-  chk (FailedToAttachMixerToVoice m v) $
-    do b <- al_attach_mixer_to_voice mp vp
-       when b $ writeIORef p (MixerVoice v)
-       return b
+attachMixerToVoice m@(Mixer mp) v@(Voice vp) =
+  chk (FailedToAttachMixerToVoice m v) (al_attach_mixer_to_voice mp vp)
 
 data FailedToAttachMixerToVoice = FailedToAttachMixerToVoice Mixer Voice
                               deriving (Typeable,Show)
@@ -292,30 +252,28 @@ instance Exception FailedToAttachMixerToVoice
 
 
 detachVoice :: Voice -> IO ()
-detachVoice (Voice vfp) = withForeignPtr vfp al_detach_voice
+detachVoice (Voice vfp) = al_detach_voice vfp
 
 getVoiceFrequency :: Voice -> IO Word
-getVoiceFrequency (Voice vfp) =
-  fmap fromIntegral $ withForeignPtr vfp $ al_get_voice_frequency
+getVoiceFrequency (Voice vfp) = fmap fromIntegral (al_get_voice_frequency vfp)
 
 -- | Throws 'InvalidChannelConf'
 getVoiceChannels :: Voice -> IO ChannelConf
 getVoiceChannels (Voice vfp) =
-  inChannelConf =<< withForeignPtr vfp al_get_voice_channels
+  inChannelConf =<< al_get_voice_channels vfp
 
 -- | Throws 'InvalidAudioDepth'
 getVoiceDepth :: Voice -> IO AudioDepth
 getVoiceDepth (Voice vfp) =
-  inAudioDepth =<< withForeignPtr vfp al_get_voice_depth
+  inAudioDepth =<< al_get_voice_depth vfp
 
 getVoicePlaying :: Voice -> IO Bool
-getVoicePlaying (Voice vfp) = withForeignPtr vfp $ al_get_voice_playing
+getVoicePlaying (Voice vfp) = al_get_voice_playing vfp
 
 -- | Throws 'FailedToSetVoicePlaying'
 setVoicePlaying :: Voice -> Bool -> IO ()
-setVoicePlaying v@(Voice vfp) b =
-  withForeignPtr vfp $ \p ->
-    chk (FailedToSetVoicePlaying v b) $ al_set_voice_playing p b
+setVoicePlaying v@(Voice p) b =
+  chk (FailedToSetVoicePlaying v b) $ al_set_voice_playing p b
 
 data FailedToSetVoicePlaying = FailedToSetVoicePlaying Voice Bool
                               deriving (Typeable,Show)
@@ -324,15 +282,13 @@ instance Exception FailedToSetVoicePlaying
 
 
 getVoicePosition :: Voice -> IO Word
-getVoicePosition (Voice vfp) =
-  fmap fromIntegral $ withForeignPtr vfp $ al_get_voice_position
+getVoicePosition (Voice vfp) = fmap fromIntegral (al_get_voice_position vfp)
 
 -- | Throws 'FailedToSetVoicePosition'
 setVoicePosition :: Voice -> Word -> IO ()
-setVoicePosition v@(Voice vfp) pos =
-  withForeignPtr vfp $ \p ->
-    chk (FailedToSetVoicePosition v pos) $ al_set_voice_position p
-                                                          (fromIntegral pos)
+setVoicePosition v@(Voice p) pos =
+  chk (FailedToSetVoicePosition v pos) $ al_set_voice_position p
+                                                            (fromIntegral pos)
 data FailedToSetVoicePosition = FailedToSetVoicePosition Voice Word
                               deriving (Typeable,Show)
 
@@ -373,24 +329,14 @@ outMixerQuality x =
 data MixerParent = MixerNoParent | MixerVoice Voice | MixerMixer Mixer
                       deriving (Eq,Ord,Show,Typeable)
 
-data Mixer = Mixer (ForeignPtr MIXER) (IORef MixerParent)
-                      deriving (Eq,Typeable)
-
-instance Show Mixer where
-  showsPrec p (Mixer f _) = showsPrec p f
-
-instance Ord Mixer where
-  compare (Mixer f _) (Mixer g _) = compare f g
+newtype Mixer = Mixer (Ptr MIXER) deriving (Eq,Ord,Typeable,Show)
 
 -- | Throws 'FailedToCreateMixer'
 createMixer :: Word {- ^ Frequency -} -> AudioDepth -> ChannelConf -> IO Mixer
 createMixer freq depth conf =
-  do p <- newIORef MixerNoParent
-     mkFP (`Mixer` p)
-          (FailedToCreateMixer freq depth conf)
-          (al_create_mixer (fromIntegral freq) (outAudioDepth depth)
-                                               (outChannelConf conf))
-          al_destroy_mixer_addr
+  mkPtr Mixer (FailedToCreateMixer freq depth conf)
+  $ (al_create_mixer (fromIntegral freq) (outAudioDepth depth)
+                                         (outChannelConf conf))
 
 
 data FailedToCreateMixer = FailedToCreateMixer Word AudioDepth ChannelConf
@@ -399,13 +345,15 @@ data FailedToCreateMixer = FailedToCreateMixer Word AudioDepth ChannelConf
 instance Exception FailedToCreateMixer
 
 
+destroyMixer :: Mixer -> IO ()
+destroyMixer (Mixer m) = al_destroy_mixer m
+
+
 -- | Throws 'FailedToAttachSampleInstanceToMixer'
 attachSampleInstanceToMixer :: SampleInstance -> Mixer -> IO ()
-attachSampleInstanceToMixer s@(SampleInstance x) m@(Mixer y _) =
-  withForeignPtr x $ \px ->
-  withForeignPtr y $ \py ->
-    chk (FailedToAttachSampleInstanceToMixer s m)
-    $ al_attach_sample_instance_to_mixer px py
+attachSampleInstanceToMixer s@(SampleInstance px) m@(Mixer py) =
+  chk (FailedToAttachSampleInstanceToMixer s m)
+  $ al_attach_sample_instance_to_mixer px py
 
 data FailedToAttachSampleInstanceToMixer =
   FailedToAttachSampleInstanceToMixer SampleInstance Mixer
@@ -415,11 +363,9 @@ instance Exception FailedToAttachSampleInstanceToMixer
 
 -- | Throws 'FailedToAttachAudioStreamToMixer'
 attachAudioStreamToMixer :: AudioStream -> Mixer -> IO ()
-attachAudioStreamToMixer s@(AudioStream x) m@(Mixer y _) =
-  withForeignPtr x $ \px ->
-  withForeignPtr y $ \py ->
-    chk (FailedToAttachAudioStreamToMixer s m)
-    $ al_attach_audio_stream_to_mixer px py
+attachAudioStreamToMixer s@(AudioStream px) m@(Mixer py) =
+  chk (FailedToAttachAudioStreamToMixer s m)
+  $ al_attach_audio_stream_to_mixer px py
 
 data FailedToAttachAudioStreamToMixer =
   FailedToAttachAudioStreamToMixer AudioStream Mixer
@@ -430,13 +376,9 @@ instance Exception FailedToAttachAudioStreamToMixer
 
 -- | Throws 'FailedToAttachMixerToMixer'
 attachMixerToMixer :: Mixer -> Mixer -> IO ()
-attachMixerToMixer s@(Mixer x p) m@(Mixer y _) =
-  withForeignPtr x $ \px ->
-  withForeignPtr y $ \py ->
-    chk (FailedToAttachMixerToMixer s m)
-    $ do b <- al_attach_mixer_to_mixer px py
-         when b (writeIORef p (MixerMixer m))
-         return b
+attachMixerToMixer s@(Mixer px) m@(Mixer py) =
+  chk (FailedToAttachMixerToMixer s m)
+  $ al_attach_mixer_to_mixer px py
 
 data FailedToAttachMixerToMixer =
   FailedToAttachMixerToMixer Mixer Mixer
@@ -446,14 +388,12 @@ instance Exception FailedToAttachMixerToMixer
 
 
 getMixerAttached :: Mixer -> IO Bool
-getMixerAttached (Mixer x _) = withForeignPtr x $ al_get_mixer_attached
+getMixerAttached (Mixer x) = al_get_mixer_attached x
 
 
 -- | Throws 'FailedToDetachMixer'
 detachMixer :: Mixer -> IO ()
-detachMixer m@(Mixer x _) =
-  withForeignPtr x $ \px ->
-    chk (FailedToDetachMixer m) $ al_detach_mixer px
+detachMixer m@(Mixer px) = chk (FailedToDetachMixer m) $ al_detach_mixer px
 
 data FailedToDetachMixer =
   FailedToDetachMixer Mixer
@@ -462,15 +402,13 @@ data FailedToDetachMixer =
 instance Exception FailedToDetachMixer
 
 getMixerFrequency :: Mixer -> IO Word
-getMixerFrequency (Mixer x _) =
-  fmap fromIntegral (withForeignPtr x al_get_mixer_frequency)
+getMixerFrequency (Mixer x) = fmap fromIntegral (al_get_mixer_frequency x)
 
 -- | Throws 'FailedToSetMixerFrequncy'
 setMixerFrequency :: Mixer -> Word -> IO ()
-setMixerFrequency m@(Mixer x _) w =
-  withForeignPtr x $ \px ->
-    chk (FailedToSetMixerFrequncy m w)
-    $ al_set_mixer_frequency px (fromIntegral w)
+setMixerFrequency m@(Mixer px) w =
+  chk (FailedToSetMixerFrequncy m w)
+  $ al_set_mixer_frequency px (fromIntegral w)
 
 data FailedToSetMixerFrequncy =
   FailedToSetMixerFrequncy Mixer Word
@@ -480,18 +418,17 @@ instance Exception FailedToSetMixerFrequncy
 
 -- | Throws 'InvalidChannelConf'
 getMixerChannels :: Mixer -> IO ChannelConf
-getMixerChannels (Mixer m _) =
-  inChannelConf =<< withForeignPtr m al_get_mixer_channels
+getMixerChannels (Mixer m) =
+  inChannelConf =<< al_get_mixer_channels m
 
 getMixerGain :: Mixer -> IO Float
-getMixerGain (Mixer x _) =
-  fmap f2f (withForeignPtr x al_get_mixer_gain)
+getMixerGain (Mixer m) = fmap f2f (al_get_mixer_gain m)
 
 -- | Throws 'FailedToSetMixerGain'
 setMixerGain :: Mixer -> Float -> IO ()
-setMixerGain m@(Mixer x _) f =
-  withForeignPtr x $ \p ->
-    chk (FailedToSetMixerGain m f) $ al_set_mixer_gain p (f2f f)
+setMixerGain m@(Mixer p) f =
+  chk (FailedToSetMixerGain m f)
+  $ al_set_mixer_gain p (f2f f)
 
 data FailedToSetMixerGain =
   FailedToSetMixerGain Mixer Float
@@ -502,14 +439,13 @@ instance Exception FailedToSetMixerGain
 
 -- | Throws 'InvalidMixerQuality'
 getMixerQuality :: Mixer -> IO MixerQuality
-getMixerQuality (Mixer x _) =
-  inMixerQuality =<< withForeignPtr x al_get_mixer_quality
+getMixerQuality (Mixer x) = inMixerQuality =<< al_get_mixer_quality x
 
 -- | Throws 'FailedToSetMixerQuality'
 setMixerQuality :: Mixer -> MixerQuality -> IO ()
-setMixerQuality m@(Mixer x _) q =
+setMixerQuality m@(Mixer p) q =
   chk (FailedToSetMixerQuality m q)
-  $ withForeignPtr x (\p -> al_set_mixer_quality p (outMixerQuality q))
+  $ al_set_mixer_quality p (outMixerQuality q)
 
 data FailedToSetMixerQuality =
   FailedToSetMixerQuality Mixer MixerQuality
@@ -518,13 +454,13 @@ data FailedToSetMixerQuality =
 instance Exception FailedToSetMixerQuality
 
 getMixerPlaying :: Mixer -> IO Bool
-getMixerPlaying (Mixer m _) = withForeignPtr m al_get_mixer_playing
+getMixerPlaying (Mixer m) = al_get_mixer_playing m
 
 -- | Throws 'FailedToSetMixerPlaying'
 setMixerPlaying :: Mixer -> Bool -> IO ()
-setMixerPlaying m@(Mixer x _) b =
+setMixerPlaying m@(Mixer q) b =
   chk (FailedToSetMixerPlaying m b)
-  $ withForeignPtr x (\q -> al_set_mixer_playing q b)
+  $ al_set_mixer_playing q b
 
 data FailedToSetMixerPlaying =
   FailedToSetMixerPlaying Mixer Bool
@@ -538,16 +474,18 @@ f2f x = fromRational (toRational x)
 
 --------------------------------------------------------------------------------
 
-newtype Sample = Sample (ForeignPtr SAMPLE)
+newtype Sample = Sample (Ptr SAMPLE)
                       deriving (Eq,Ord,Show,Typeable)
 
 -- | Throws 'FailedToLoadSample'
 loadSample :: FilePath -> IO Sample
 loadSample path =
   withCString path $ \str ->
-  mkFP Sample (FailedToLoadSample path)
-              (al_load_sample str)
-              al_destroy_sample_adr
+  mkPtr Sample (FailedToLoadSample path)
+               (al_load_sample str)
+
+destroySample :: Sample -> IO ()
+destroySample (Sample x) = al_destroy_sample x
 
 
 data FailedToLoadSample = FailedToLoadSample FilePath
@@ -558,17 +496,17 @@ instance Exception FailedToLoadSample
 --------------------------------------------------------------------------------
 -- Sample Instances
 
-newtype SampleInstance = SampleInstance (ForeignPtr SAMPLE_INSTANCE)
+newtype SampleInstance = SampleInstance (Ptr SAMPLE_INSTANCE)
                       deriving (Eq,Ord,Show,Typeable)
 
 -- | Throws 'FailedToCreateSampleInstance'
 createSampleInstance :: Sample -> IO SampleInstance
-createSampleInstance s@(Sample fp) =
-  withForeignPtr fp $ \sptr ->
-    mkFP SampleInstance
-         (FailedToCreateSampleInstance s)
-         (al_create_sample_instance sptr)
-         al_destroy_sample_instance_addr
+createSampleInstance s@(Sample sptr) =
+  mkPtr SampleInstance (FailedToCreateSampleInstance s)
+                       (al_create_sample_instance sptr)
+
+destroySampleInstance :: SampleInstance -> IO ()
+destroySampleInstance (SampleInstance x) = al_destroy_sample_instance x
 
 data FailedToCreateSampleInstance = FailedToCreateSampleInstance Sample
                               deriving (Typeable,Show)
@@ -579,26 +517,26 @@ instance Exception FailedToCreateSampleInstance
 -- | Throws 'InvalidChannelConf'
 getSampleInstanceChannels :: SampleInstance -> IO ChannelConf
 getSampleInstanceChannels (SampleInstance x) =
-  inChannelConf =<< withForeignPtr x al_get_sample_instance_channels
+  inChannelConf =<< al_get_sample_instance_channels x
 
 -- | Throws 'InvalidAudioDepth'
 getSampleInstanceDepth :: SampleInstance -> IO AudioDepth
 getSampleInstanceDepth (SampleInstance x) =
-  inAudioDepth =<< withForeignPtr x al_get_sample_instance_depth
+  inAudioDepth =<< al_get_sample_instance_depth x
 
 getSampleInstanceFrequency :: SampleInstance -> IO Word
 getSampleInstanceFrequency (SampleInstance x) =
-  fmap fromIntegral (withForeignPtr x al_get_sample_instance_frequency)
+  fmap fromIntegral (al_get_sample_instance_frequency x)
 
 getSampleInstanceLength :: SampleInstance -> IO Word
 getSampleInstanceLength (SampleInstance x) =
-  fmap fromIntegral (withForeignPtr x al_get_sample_instance_length)
+  fmap fromIntegral (al_get_sample_instance_length x)
 
 -- | Throws 'FailedToSetSampleInstanceLength'
 setSampleInstanceLength :: SampleInstance -> Word -> IO ()
-setSampleInstanceLength s@(SampleInstance x) w =
+setSampleInstanceLength s@(SampleInstance p) w =
   chk (FailedToSetSampleInstanceLength s w)
-  $ withForeignPtr x $ \p -> al_set_sample_instance_length p (fromIntegral w)
+  $ al_set_sample_instance_length p (fromIntegral w)
 
 data FailedToSetSampleInstanceLength =
   FailedToSetSampleInstanceLength SampleInstance Word
@@ -608,13 +546,13 @@ instance Exception FailedToSetSampleInstanceLength
 
 getSampleInstancePosition :: SampleInstance -> IO Word
 getSampleInstancePosition (SampleInstance x) =
-  fmap fromIntegral $ withForeignPtr x al_get_sample_instance_position
+  fmap fromIntegral $ al_get_sample_instance_position x
 
 -- | Throws 'FailedToSetSampleInstancePosition'
 setSampleInstancePosition :: SampleInstance -> Word -> IO ()
-setSampleInstancePosition s@(SampleInstance x) w =
+setSampleInstancePosition s@(SampleInstance p) w =
   chk (FailedToSetSampleInstancePosition s w)
-  $ withForeignPtr x $ \p -> al_set_sample_instance_position p (fromIntegral w)
+  $ al_set_sample_instance_position p (fromIntegral w)
 
 data FailedToSetSampleInstancePosition =
   FailedToSetSampleInstancePosition SampleInstance Word
@@ -624,13 +562,13 @@ instance Exception FailedToSetSampleInstancePosition
 
 getSampleInstanceSpeed :: SampleInstance -> IO Float
 getSampleInstanceSpeed (SampleInstance x) =
-  fmap f2f (withForeignPtr x al_get_sample_instance_speed)
+  fmap f2f (al_get_sample_instance_speed x)
 
 -- | Throws 'FailedToSetSampleInstanceSpeed'
 setSampleInstanceSpeed :: SampleInstance -> Float -> IO ()
-setSampleInstanceSpeed s@(SampleInstance x) f =
+setSampleInstanceSpeed s@(SampleInstance p) f =
   chk (FailedToSetSampleInstanceSpeed s f)
-  $ withForeignPtr x $ \p -> al_set_sample_instance_speed p (f2f f)
+  $ al_set_sample_instance_speed p (f2f f)
 
 data FailedToSetSampleInstanceSpeed =
   FailedToSetSampleInstanceSpeed SampleInstance Float
@@ -640,13 +578,13 @@ instance Exception FailedToSetSampleInstanceSpeed
 
 getSampleInstanceGain :: SampleInstance -> IO Float
 getSampleInstanceGain (SampleInstance x) =
-  fmap f2f $ withForeignPtr x al_get_sample_instance_gain
+  fmap f2f $ al_get_sample_instance_gain x
 
 -- | Throws 'FailedToSetSampleInstanceGain'
 setSampleInstanceGain :: SampleInstance -> Float -> IO ()
-setSampleInstanceGain s@(SampleInstance x) f =
+setSampleInstanceGain s@(SampleInstance p) f =
   chk (FailedToSetSampleInstanceGain s f)
-  $ withForeignPtr x $ \p -> al_set_sample_instance_gain p (f2f f)
+  $ al_set_sample_instance_gain p (f2f f)
 
 data FailedToSetSampleInstanceGain =
   FailedToSetSampleInstanceGain SampleInstance Float
@@ -656,14 +594,13 @@ instance Exception FailedToSetSampleInstanceGain
 
 getSampleInstancePan :: SampleInstance -> IO Float
 getSampleInstancePan (SampleInstance x) =
-  fmap f2f $ withForeignPtr x al_get_sample_instance_pan
+  fmap f2f $ al_get_sample_instance_pan x
 
 -- | Throws 'FailedToSetSampleInstancePan'
 setSampleInstancePan :: SampleInstance -> Maybe Float -> IO ()
-setSampleInstancePan s@(SampleInstance x) mb =
+setSampleInstancePan s@(SampleInstance p) mb =
   chk (FailedToSetSampleInstancePan s mb)
-  $ withForeignPtr x
-  $ \p -> al_set_sample_instance_pan p (maybe audio_pan_none f2f mb)
+  $ al_set_sample_instance_pan p (maybe audio_pan_none f2f mb)
 
 data FailedToSetSampleInstancePan =
   FailedToSetSampleInstancePan SampleInstance (Maybe Float)
@@ -696,14 +633,13 @@ instance Exception InvalidPlayMode
 -- | Throws 'InvalidPlayMode'
 getSampleInstancePlayMode :: SampleInstance -> IO PlayMode
 getSampleInstancePlayMode (SampleInstance s) =
-  inPlayMode =<< withForeignPtr s al_get_sample_instance_playmode
+  inPlayMode =<< al_get_sample_instance_playmode s
 
 -- | Throws 'FailedToSetPlayMode'
 setSampleInstancePlayMode :: SampleInstance -> PlayMode -> IO ()
-setSampleInstancePlayMode s@(SampleInstance x) p =
+setSampleInstancePlayMode s@(SampleInstance ptr) p =
   chk (FailedToSetPlayMode s p)
-  $ withForeignPtr x
-  $ \ptr -> al_set_sample_instance_playmode ptr (outPlayMode p)
+  $ al_set_sample_instance_playmode ptr (outPlayMode p)
 
 data FailedToSetPlayMode =
   FailedToSetPlayMode SampleInstance PlayMode
@@ -713,13 +649,13 @@ instance Exception FailedToSetPlayMode
 
 getSampleInstancePlaying :: SampleInstance -> IO Bool
 getSampleInstancePlaying (SampleInstance x) =
-  withForeignPtr x al_get_sample_instance_playing
+  al_get_sample_instance_playing x
 
 -- | Throws 'FailedToSetSampleInstancePlaying'
 setSampleInstancePlaying :: SampleInstance -> Bool -> IO ()
-setSampleInstancePlaying s@(SampleInstance x) b =
+setSampleInstancePlaying s@(SampleInstance p) b =
   chk (FailedToSetSampleInstancePlaying s b)
-  $ withForeignPtr x $ \p -> al_set_sample_instance_playing p b
+  $ al_set_sample_instance_playing p b
 
 data FailedToSetSampleInstancePlaying =
   FailedToSetSampleInstancePlaying SampleInstance Bool
@@ -729,17 +665,16 @@ instance Exception FailedToSetSampleInstancePlaying
 
 getSampleInstanceTime :: SampleInstance -> IO Float
 getSampleInstanceTime (SampleInstance x) =
-  fmap f2f (withForeignPtr x al_get_sample_instance_time)
+  fmap f2f (al_get_sample_instance_time x)
 
 getSampleInstanceAttached :: SampleInstance -> IO Bool
-getSampleInstanceAttached (SampleInstance x) =
-  withForeignPtr x al_get_sample_instance_attached
+getSampleInstanceAttached (SampleInstance x) = al_get_sample_instance_attached x
 
 -- | Throws 'FailedToDetachSampleInstance'
 detachSampleInstance :: SampleInstance -> IO ()
 detachSampleInstance s@(SampleInstance x) =
   chk (FailedToDetachSampleInstance s)
-  (withForeignPtr x al_detach_sample_instance)
+  (al_detach_sample_instance x)
 
 data FailedToDetachSampleInstance =
   FailedToDetachSampleInstance SampleInstance
@@ -756,7 +691,7 @@ instance Exception FailedToDetachSampleInstance
 
 
 
-newtype AudioStream = AudioStream (ForeignPtr AUDIO_STREAM)
+newtype AudioStream = AudioStream (Ptr AUDIO_STREAM)
                       deriving (Eq,Ord,Show,Typeable)
 
 instance Exception AudioStream
@@ -766,9 +701,11 @@ loadAudioStream :: FilePath -> Word {- ^ buffer count -} ->
                    Word {-^ samples -} -> IO AudioStream
 loadAudioStream path buffers samples =
   withCString path $ \str ->
-  mkFP AudioStream (FailedToLoadAudioStream path buffers samples)
+  mkPtr AudioStream (FailedToLoadAudioStream path buffers samples)
       (al_load_audio_stream str (fromIntegral buffers) (fromIntegral samples))
-      al_destroy_audio_stream_addr
+
+destroyAudioStream :: AudioStream -> IO ()
+destroyAudioStream (AudioStream p) = al_destroy_audio_stream p
 
 data FailedToLoadAudioStream = FailedToLoadAudioStream FilePath Word Word
                               deriving (Typeable,Show)
